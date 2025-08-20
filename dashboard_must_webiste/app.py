@@ -2,6 +2,9 @@
 from flask import Flask, render_template, send_from_directory
 import os
 
+
+#gunicorn --bind 0.0.0.0:8080 app:app
+
 class PikachuServer:
     """
     Uma classe de servidor web Flask para servir um dashboard de análise.
