@@ -4,309 +4,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Análise - Pontos MUST</title>
+    <title>Dashboard de Análise - Pontos MUST (React)</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React via CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel (para transpilar JSX no navegador) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-
-        /* Estilo para a barra de rolagem */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-
-        .modal-overlay {
-            transition: opacity 0.3s ease;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .modal-overlay { transition: opacity 0.3s ease; }
     </style>
 </head>
 
 <body class="bg-gray-900 text-gray-200">
+    <!-- O React vai renderizar a aplicação dentro desta div -->
+    <div id="root"></div>
 
-    <div class="container mx-auto p-4 md:p-8">
+    <!-- Script React com JSX (precisa do type="text/babel") -->
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-        <!-- Cabeçalho -->
-        <header class="mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Análise de Pontos MUST</h1>
-            <p class="text-gray-400 mt-2">Visão geral das solicitações e ressalvas por empresa e ponto de conexão.</p>
-        </header>
+        // --- COMPONENTES REUTILIZÁVEIS ---
 
-        <!-- Seção de KPIs (Indicadores Chave) -->
-        <section id="kpi-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Os cartões de KPI serão inseridos aqui pelo JavaScript -->
-        </section>
-
-        <!-- Seção de Análise por Empresa -->
-        <section class="mb-8">
-            <h2 class="text-2xl font-bold text-white mb-4">Análise por Empresa</h2>
-            <div id="company-analysis-section" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Os cartões de empresa serão inseridos aqui pelo JavaScript -->
+        const KpiCard = ({ title, value, unit = '' }) => (
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+                <p className="text-3xl font-bold text-white">{value}{unit}</p>
             </div>
-        </section>
+        );
 
-        <!-- Seção da Tabela Detalhada -->
-        <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-2xl font-bold text-white mb-4">Detalhes dos Pontos de Conexão</h2>
-
-            <!-- Filtros -->
-            <div class="flex flex-col md:flex-row gap-4 mb-6">
-                <div class="flex-1">
-                    <label for="company-filter" class="block text-sm font-medium text-gray-400 mb-1">Filtrar por
-                        Empresa</label>
-                    <select id="company-filter"
-                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="all">Todas as Empresas</option>
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <label for="search-input" class="block text-sm font-medium text-gray-400 mb-1">Pesquisar</label>
-                    <input type="text" id="search-input"
-                        class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Buscar por Cód ONS, Instalação, Ressalva...">
-                </div>
-            </div>
-
-            <!-- Tabela de Dados -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="text-xs text-gray-400 uppercase bg-gray-700">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Empresa</th>
-                            <th scope="col" class="px-6 py-3">Cód ONS</th>
-                            <th scope="col" class="px-6 py-3">Instalação</th>
-                            <th scope="col" class="px-6 py-3">Tensão (kV)</th>
-                            <th scope="col" class="px-6 py-3 text-center">Possui Ressalva?</th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table-body">
-                        <!-- As linhas da tabela serão inseridas aqui pelo JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-
-    <!-- Modal para exibir anotações -->
-    <div id="annotation-modal"
-        class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden modal-overlay"
-        onclick="closeModal()">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-            onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-white">Detalhes da Ressalva</h3>
-                <button onclick="closeModal()"
-                    class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-            </div>
-            <div id="modal-content" class="text-gray-300 whitespace-pre-wrap">
-                <!-- Conteúdo da anotação será inserido aqui -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Adiciona um "ouvinte" que espera que todo o conteúdo do HTML seja carregado antes de executar o código.
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- CARREGAMENTO DOS DADOS ---
-            // O JavaScript agora vai buscar os dados do seu arquivo JSON.
-            // O './' indica que o arquivo DEVE ESTAR NA MESMA PASTA que este arquivo HTML.
-            fetch('must_tables_PDF_notes_merged.json')
-                .then(response => {
-                    // Verifica se a requisição foi bem-sucedida
-                    if (!response.ok) {
-                        throw new Error('Erro na rede: ' + response.statusText);
-                    }
-                    // Converte a resposta para o formato JSON
-                    return response.json();
-                })
-                .then(dados => {
-                    // Quando os dados são carregados com sucesso, a variável 'dados' contém todo o seu JSON.
-                    // A aplicação é então iniciada com esses dados.
-                    initializeApp(dados);
-                })
-                .catch(error => {
-                    console.error('Erro ao carregar os dados:', error);
-                    // Mostra uma mensagem de erro no dashboard se o JSON não for encontrado
-                    const container = document.querySelector('.container');
-                    if (container) {
-                        container.innerHTML = `<div class="text-center p-8 text-red-400 bg-gray-800 rounded-lg">
-                            <h1 class="text-2xl font-bold">Erro ao Carregar Dados</h1>
-                            <p class="mt-2">Não foi possível carregar o arquivo 'must_tables_PDF_notes_merged.json'.</p>
-                            <p class="mt-1">Verifique se o arquivo está na mesma pasta que o HTML e se você está executando a página a partir de um servidor local.</p>
-                        </div>`;
-                    }
-                });
-        });
-
-        function initializeApp(dados) {
-            // Chama todas as funções necessárias para construir o dashboard
-            renderKPIs(dados);
-            renderCompanyAnalysis(dados);
-            populateCompanyFilter(dados);
-            renderTable(dados);
-
-            // Adiciona os "ouvintes" para os filtros, para que a tabela se atualize quando o utilizador interagir
-            document.getElementById('company-filter').addEventListener('change', () => filterData(dados));
-            document.getElementById('search-input').addEventListener('input', () => filterData(dados));
-        }
-
-        // Renderiza os cartões de KPI no topo
-        function renderKPIs(dados) {
-            const uniqueCompanies = new Set(dados.map(item => item.EMPRESA)).size;
-            const totalPoints = dados.length;
-            const pointsWithRemarks = dados.filter(item => item.Anotacao && String(item.Anotacao).trim() !== 'nan').length;
-            const percentageWithRemarks = totalPoints > 0 ? ((pointsWithRemarks / totalPoints) * 100).toFixed(1) : 0;
-
-            const kpiContainer = document.getElementById('kpi-section');
-            kpiContainer.innerHTML = `
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h3 class="text-gray-400 text-sm font-medium">Total de Empresas</h3>
-                    <p class="text-3xl font-bold text-white">${uniqueCompanies}</p>
-                </div>
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h3 class="text-gray-400 text-sm font-medium">Total de Pontos de Conexão</h3>
-                    <p class="text-3xl font-bold text-white">${totalPoints}</p>
-                </div>
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h3 class="text-gray-400 text-sm font-medium">Pontos com Ressalvas</h3>
-                    <p class="text-3xl font-bold text-white">${pointsWithRemarks}</p>
-                </div>
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h3 class="text-gray-400 text-sm font-medium">% de Pontos com Ressalvas</h3>
-                    <p class="text-3xl font-bold text-white">${percentageWithRemarks}%</p>
-                </div>
-            `;
-        }
-
-        // Renderiza os cartões de análise por empresa
-        function renderCompanyAnalysis(dados) {
-            const companyData = {};
-            dados.forEach(item => {
-                if (!companyData[item.EMPRESA]) {
-                    companyData[item.EMPRESA] = { total: 0, withRemarks: 0 };
-                }
-                companyData[item.EMPRESA].total++;
-                if (item.Anotacao && String(item.Anotacao).trim() !== 'nan') {
-                    companyData[item.EMPRESA].withRemarks++;
-                }
-            });
-
-            const companyContainer = document.getElementById('company-analysis-section');
-            companyContainer.innerHTML = Object.entries(companyData).map(([company, stats]) => {
-                const percentage = stats.total > 0 ? (stats.withRemarks / stats.total) * 100 : 0;
-                return `
-                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h3 class="text-xl font-bold text-white truncate" title="${company}">${company}</h3>
-                        <div class="mt-4">
-                            <div class="flex justify-between text-gray-400 text-sm">
-                                <span>Pontos com Ressalvas</span>
-                                <span>${stats.withRemarks} / ${stats.total}</span>
-                            </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percentage}%"></div>
-                            </div>
+        const CompanyCard = ({ company, stats }) => {
+            const percentage = stats.total > 0 ? (stats.withRemarks / stats.total) * 100 : 0;
+            return (
+                <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold text-white truncate" title={company}>{company}</h3>
+                    <div className="mt-4">
+                        <div className="flex justify-between text-gray-400 text-sm">
+                            <span>Pontos com Ressalvas</span>
+                            <span>{stats.withRemarks} / {stats.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
+                </div>
+            );
+        };
+        
+        const AnnotationModal = ({ content, onClose }) => {
+            if (!content) return null;
+            return (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 modal-overlay"
+                    style={{ opacity: 1 }}
+                    onClick={onClose}
+                >
+                    <div 
+                        className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-white">Detalhes da Ressalva</h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                        </div>
+                        <div className="text-gray-300 whitespace-pre-wrap">
+                            {content}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-        // Popula o dropdown de filtro de empresas
-        function populateCompanyFilter(dados) {
-            const companies = [...new Set(dados.map(item => item.EMPRESA))].sort();
-            const filterSelect = document.getElementById('company-filter');
-            companies.forEach(company => {
-                const option = document.createElement('option');
-                option.value = company;
-                option.textContent = company;
-                filterSelect.appendChild(option);
-            });
-        }
+        const ErrorDisplay = ({ error }) => (
+            <div className="text-center p-8 text-red-400 bg-gray-800 rounded-lg">
+                <h1 className="text-2xl font-bold">Erro ao Carregar Dados</h1>
+                <p className="mt-2">Não foi possível carregar o arquivo 'must_tables_PDF_notes_merged.json'.</p>
+                <p className="mt-1">Verifique se o arquivo está na mesma pasta que o HTML e se você está executando a página a partir de um servidor local.</p>
+                <p className="mt-4 text-xs text-gray-500">Detalhe do erro: {error}</p>
+            </div>
+        );
 
-        // Renderiza as linhas da tabela de dados
-        function renderTable(dados) {
-            const tableBody = document.getElementById('data-table-body');
-            if (!dados || dados.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-400">Nenhum resultado encontrado.</td></tr>`;
-                return;
+
+        // --- COMPONENTE PRINCIPAL DA APLICAÇÃO ---
+        function App() {
+            // --- ESTADO DA APLICAÇÃO ---
+            const [data, setData] = useState([]);
+            const [filters, setFilters] = useState({ company: 'all', search: '' });
+            const [modalContent, setModalContent] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            // --- CARREGAMENTO DOS DADOS (EFEITO) ---
+            useEffect(() => {
+                fetch('must_tables_PDF_notes_merged.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Erro na rede: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(fetchedData => {
+                        setData(fetchedData);
+                        setError(null);
+                    })
+                    .catch(err => {
+                        console.error('Erro ao carregar os dados:', err);
+                        setError(err.message);
+                    })
+                    .finally(() => {
+                        setLoading(false);
+                    });
+            }, []);
+
+            // --- PROCESSAMENTO DOS DADOS PARA ADICIONAR CAMINHOS DE ARQUIVO ---
+            const processedData = useMemo(() => {
+                // Se não houver dados, retorna um array vazio
+                if (!data || data.length === 0) {
+                    return [];
+                }
+
+                // Mapeia os dados para adicionar o caminho do arquivo
+                return data.map((item, index) => {
+                    let filePath = 'caminho_padrao.pdf'; // Um valor padrão
+                    const empresa = item.EMPRESA;
+
+                    // *** É AQUI QUE VOCÊ PODE ADICIONAR SUA LÓGICA DE 'IF/ELSE' ***
+                    // Exemplo:
+                    if (empresa === 'SUL E SUDESTE') {
+                         filePath = 'https://onsbr-my.sharepoint.com/:f:/g/personal/pedrovictor_veras_ons_org_br/EkHYFsCO01dFnFg5rKfamLgB-CBu9blsCgRvueKjFZftng?e=sg25li';
+                     } else if (empresa === 'ELETROPAULO') {
+                         filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho`;
+                     } else if (empresa == "PIRATININGA") {
+                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9`;
+                     }
+                     
+                     else {
+                         // Lógica padrão que você criou
+                         filePath = `MUST_${empresa.replace(/\s+/g, "_")}_${index}.pdf`;
+                     }
+
+
+                    // Retorna o item original com a nova propriedade 'arquivoReferencia'
+                    return { ...item, arquivoReferencia: filePath };
+                });
+            }, [data]); // Este cálculo é refeito apenas quando os 'dados' originais mudam
+
+            // --- CÁLCULOS E FILTRAGEM (USANDO DADOS PROCESSADOS) ---
+            const kpis = useMemo(() => {
+                if (!processedData.length) return { uniqueCompanies: 0, totalPoints: 0, pointsWithRemarks: 0, percentageWithRemarks: '0.0' };
+                const uniqueCompanies = new Set(processedData.map(item => item.EMPRESA)).size;
+                const totalPoints = processedData.length;
+                const pointsWithRemarks = processedData.filter(item => item.Anotacao && String(item.Anotacao).trim() !== 'nan').length;
+                const percentageWithRemarks = totalPoints > 0 ? ((pointsWithRemarks / totalPoints) * 100).toFixed(1) : '0.0';
+                return { uniqueCompanies, totalPoints, pointsWithRemarks, percentageWithRemarks };
+            }, [processedData]);
+
+            const companyAnalysis = useMemo(() => {
+                const companyData = {};
+                processedData.forEach(item => {
+                    if (!companyData[item.EMPRESA]) {
+                        companyData[item.EMPRESA] = { total: 0, withRemarks: 0 };
+                    }
+                    companyData[item.EMPRESA].total++;
+                    if (item.Anotacao && String(item.Anotacao).trim() !== 'nan') {
+                        companyData[item.EMPRESA].withRemarks++;
+                    }
+                });
+                return Object.entries(companyData);
+            }, [processedData]);
+
+            const uniqueCompaniesList = useMemo(() =>
+                [...new Set(processedData.map(item => item.EMPRESA))].sort()
+            , [processedData]);
+
+            const filteredData = useMemo(() => {
+                return processedData.filter(item => {
+                    const companyMatch = filters.company === 'all' || item.EMPRESA === filters.company;
+                    const searchTerm = filters.search.toLowerCase();
+                    const searchMatch = !searchTerm ||
+                        String(item['Cód ONS']).toLowerCase().includes(searchTerm) ||
+                        String(item.Instalação).toLowerCase().includes(searchTerm) ||
+                        (item.Anotacao && String(item.Anotacao).toLowerCase().includes(searchTerm));
+                    return companyMatch && searchMatch;
+                });
+            }, [processedData, filters]);
+
+            // --- MANIPULADORES DE EVENTOS ---
+            const handleFilterChange = (e) => {
+                const { name, value } = e.target;
+                setFilters(prev => ({ ...prev, [name]: value }));
+            };
+
+            const handleRowClick = (annotation) => {
+                if (annotation && String(annotation).trim() !== 'nan') {
+                    setModalContent(annotation);
+                }
+            };
+
+            // --- RENDERIZAÇÃO CONDICIONAL ---
+            if (loading) {
+                return <div className="text-center p-8">Carregando dados...</div>;
             }
-            tableBody.innerHTML = dados.map(item => {
-                const hasRemark = item.Anotacao && String(item.Anotacao).trim() !== 'nan';
-                // Usando encodeURIComponent para tratar caracteres especiais na anotação
-                const encodedAnnotation = hasRemark ? encodeURIComponent(item.Anotacao) : '';
+            if (error) {
+                return <div className="container mx-auto p-4 md:p-8"><ErrorDisplay error={error} /></div>;
+            }
 
-                return `
-                <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 ${hasRemark ? 'cursor-pointer' : ''}" 
-                    onclick="${hasRemark ? `showModal(this)` : ''}"
-                    data-anotacao="${encodedAnnotation}">
-                    <td class="px-6 py-4 font-medium text-white">${item.EMPRESA || ''}</td>
-                    <td class="px-6 py-4">${item['Cód ONS'] || ''}</td>
-                    <td class="px-6 py-4">${item.Instalação || ''}</td>
-                    <td class="px-6 py-4">${item['Tensão (kV)'] || ''}</td>
-                    <td class="px-6 py-4 text-center">
-                        ${hasRemark
-                        ? '<span class="inline-block px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">Sim</span>'
-                        : '<span class="inline-block px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-400 rounded-full">Não</span>'}
-                    </td>
-                </tr>
-            `}).join('');
+            // --- RENDERIZAÇÃO DO JSX ---
+            return (
+                <React.Fragment>
+                    <div className="container mx-auto p-4 md:p-8">
+                        <header className="mb-8">
+                            <h1 className="text-3xl md:text-4xl font-bold text-white">Dashboard de Análise de Pontos MUST</h1>
+                            <p className="text-gray-400 mt-2">Visão geral das solicitações e ressalvas por empresa e ponto de conexão.</p>
+                        </header>
+
+                        <section id="kpi-section" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <KpiCard title="Total de Empresas" value={kpis.uniqueCompanies} />
+                            <KpiCard title="Total de Pontos de Conexão" value={kpis.totalPoints} />
+                            <KpiCard title="Pontos com Ressalvas" value={kpis.pointsWithRemarks} />
+                            <KpiCard title="% de Pontos com Ressalvas" value={kpis.percentageWithRemarks} unit="%" />
+                        </section>
+
+                        <section className="mb-8">
+                            <h2 className="text-2xl font-bold text-white mb-4">Análise por Empresa</h2>
+                            <div id="company-analysis-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {companyAnalysis.map(([company, stats]) => (
+                                    <CompanyCard key={company} company={company} stats={stats} />
+                                ))}
+                            </div>
+                        </section>
+
+                        <section className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 className="text-2xl font-bold text-white mb-4">Detalhes dos Pontos de Conexão</h2>
+                            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                                <div className="flex-1">
+                                    <label htmlFor="company-filter" className="block text-sm font-medium text-gray-400 mb-1">Filtrar por Empresa</label>
+                                    <select id="company-filter" name="company" value={filters.company} onChange={handleFilterChange}
+                                        className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="all">Todas as Empresas</option>
+                                        {uniqueCompaniesList.map(company => (
+                                            <option key={company} value={company}>{company}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label htmlFor="search-input" className="block text-sm font-medium text-gray-400 mb-1">Pesquisar</label>
+                                    <input type="text" id="search-input" name="search" value={filters.search} onChange={handleFilterChange}
+                                        className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Buscar por Cód ONS, Ressalva..." />
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left text-gray-300">
+                                    <thead className="text-xs text-gray-400 uppercase bg-gray-700">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3">Empresa</th>
+                                            <th scope="col" className="px-6 py-3">Cód ONS</th>
+                                            <th scope="col" className="px-6 py-3">Tensão (kV)</th>
+                                            <th scope="col" className="px-6 py-3 text-center">Possui Ressalva?</th>
+                                            <th scope="col" className="px-6 py-3">Arquivo de Referência</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredData.length > 0 ? filteredData.map((item, index) => {
+                                            const hasRemark = item.Anotacao && String(item.Anotacao).trim() !== 'nan';
+                                            return (
+                                                <tr key={`${item['Cód ONS']}-${index}`}
+                                                    className={`bg-gray-800 border-b border-gray-700 hover:bg-gray-700 ${hasRemark ? 'cursor-pointer' : ''}`}
+                                                    onClick={() => handleRowClick(item.Anotacao)}>
+                                                    <td className="px-6 py-4 font-medium text-white">{item.EMPRESA || ''}</td>
+                                                    <td className="px-6 py-4">{item['Cód ONS'] || ''}</td>
+                                                    <td className="px-6 py-4">{item['Tensão (kV)'] || ''}</td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {hasRemark
+                                                            ? <span className="inline-block px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">Sim</span>
+                                                            : <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-400 rounded-full">Não</span>
+                                                        }
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <a href={item.arquivoReferencia} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                                                            Abrir PDF
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }) : (
+                                            <tr>
+                                                <td colSpan="6" className="text-center py-8 text-gray-400">Nenhum resultado encontrado.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                    <AnnotationModal content={modalContent} onClose={() => setModalContent(null)} />
+                </React.Fragment>
+            );
         }
 
-        // Filtra os dados com base nos inputs e renderiza a tabela novamente
-        function filterData(dados) {
-            const companyFilter = document.getElementById('company-filter').value;
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
-
-            const filteredData = dados.filter(item => {
-                const companyMatch = companyFilter === 'all' || item.EMPRESA === companyFilter;
-
-                const searchMatch = !searchTerm ||
-                    String(item['Cód ONS']).toLowerCase().includes(searchTerm) ||
-                    String(item.Instalação).toLowerCase().includes(searchTerm) ||
-                    (item.Anotacao && String(item.Anotacao).toLowerCase().includes(searchTerm));
-
-                return companyMatch && searchMatch;
-            });
-
-            renderTable(filteredData);
-        }
-
-        // Funções do Modal
-        function showModal(element) {
-            // Usando decodeURIComponent para ler a anotação corretamente
-            const annotation = decodeURIComponent(element.getAttribute('data-anotacao'));
-            if (!annotation || annotation === 'null') return;
-
-            document.getElementById('modal-content').textContent = annotation;
-            const modal = document.getElementById('annotation-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.style.opacity = 1, 10); // Pequeno delay para a transição funcionar
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('annotation-modal');
-            modal.style.opacity = 0;
-            // Espera a transição de opacidade terminar antes de esconder o modal
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
+        // Renderiza o componente App na div#root
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
-
 </html>
