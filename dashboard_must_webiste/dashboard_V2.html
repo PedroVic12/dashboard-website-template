@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Dashboard de Análise - Pontos MUST (React)</title>
     
     <!-- Tailwind CSS -->
@@ -21,6 +21,9 @@
     <!-- Babel (para transpilar JSX no navegador) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -37,29 +40,35 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- DADOS MOCK (Estrutura real da sua tabela) ---
-        // Para resolver o erro de 'fetch', os dados são carregados diretamente aqui.
-        // Em um ambiente de produção com um servidor, a chamada 'fetch' funcionaria.
+        // --- DADOS MOCK (Expandidos para incluir novos campos) ---
         const mockData = [
-            { "EMPRESA": "SUL E SUDESTE", "Cód ONS": "SPUFA-138", "Tensão (kV)": 138, "Ponta 2025 Valor": 3.0, "Ponta 2025 Anotacao": "D", "Fora Ponta 2025 Valor": 3.5, "Fora Ponta 2025 Anotacao": "D", "Ponta 2026 Valor": 3.0, "Ponta 2026 Anotacao": "D", "Fora Ponta 2026 Valor": 3.5, "Fora Ponta 2026 Anotacao": "D", "Ponta 2027 Valor": 3.0, "Ponta 2027 Anotacao": "D", "Fora Ponta 2027 Valor": 3.5, "Fora Ponta 2027 Anotacao": "D", "Ponta 2028 Valor": 3.0, "Ponta 2028 Anotacao": "D", "Fora Ponta 2028 Valor": 3.5, "Fora Ponta 2028 Anotacao": "D", "Anotacao": "O atendimento ao MUST fica condicionado à manutenibilidade da LT." },
-            { "EMPRESA": "SUL E SUDESTE", "Cód ONS": "SPASS188", "Tensão (kV)": 88, "Ponta 2025 Valor": 44.7, "Ponta 2025 Anotacao": "E", "Fora Ponta 2025 Valor": 41.9, "Fora Ponta 2025 Anotacao": "E", "Ponta 2026 Valor": 44.7, "Ponta 2026 Anotacao": "E", "Fora Ponta 2026 Valor": 41.9, "Fora Ponta 2026 Anotacao": "E", "Ponta 2027 Valor": 44.7, "Ponta 2027 Anotacao": "E", "Fora Ponta 2027 Valor": 41.9, "Fora Ponta 2027 Anotacao": "E", "Ponta 2028 Valor": 44.7, "Ponta 2028 Anotacao": "E", "Fora Ponta 2028 Valor": 41.9, "Fora Ponta 2028 Anotacao": "E", "Anotacao": "No ponto de ASSIS I 88 kV, a USUÁRIA declarou valores de MUST." },
-            { "EMPRESA": "PIRATININGA", "Cód ONS": "SPBAST138", "Tensão (kV)": 138, "Ponta 2025 Valor": 19.8, "Ponta 2025 Anotacao": "nan", "Fora Ponta 2025 Valor": 20.4, "Fora Ponta 2025 Anotacao": "nan", "Ponta 2026 Valor": 20.1, "Ponta 2026 Anotacao": "nan", "Fora Ponta 2026 Valor": 20.7, "Fora Ponta 2026 Anotacao": "nan", "Ponta 2027 Valor": 20.4, "Ponta 2027 Anotacao": "nan", "Fora Ponta 2027 Valor": 21.0, "Fora Ponta 2027 Anotacao": "nan", "Ponta 2028 Valor": 20.7, "Ponta 2028 Anotacao": "nan", "Fora Ponta 2028 Valor": 21.3, "Fora Ponta 2028 Anotacao": "nan", "Anotacao": "nan" },
-            { "EMPRESA": "ELETROPAULO", "Cód ONS": "SPBRB-138", "Tensão (kV)": 138, "Ponta 2025 Valor": 23.9, "Ponta 2025 Anotacao": "P", "Fora Ponta 2025 Valor": 24.4, "Fora Ponta 2025 Anotacao": "P", "Ponta 2026 Valor": 23.9, "Ponta 2026 Anotacao": "P", "Fora Ponta 2026 Valor": 24.4, "Fora Ponta 2026 Anotacao": "P", "Ponta 2027 Valor": 23.9, "Ponta 2027 Anotacao": "P", "Fora Ponta 2027 Valor": 24.4, "Fora Ponta 2027 Anotacao": "P", "Ponta 2028 Valor": 23.9, "Ponta 2028 Anotacao": "P", "Fora Ponta 2028 Valor": 24.4, "Fora Ponta 2028 Anotacao": "P", "Anotacao": "No ponto de BORBOREMA 138 kV, a USUÁRIA declarou valores." }
+            { "EMPRESA": "SUL E SUDESTE", "Cód ONS": "SPUFA-138", "Tensão (kV)": 138, "Ponta 2025 Valor": 3.0, "Ponta 2025 Anotacao": "D", "Fora Ponta 2025 Valor": 3.5, "Fora Ponta 2025 Anotacao": "D", "Ponta 2026 Valor": 3.0, "Ponta 2026 Anotacao": "D", "Fora Ponta 2026 Valor": 3.5, "Fora Ponta 2026 Anotacao": "D", "Ponta 2027 Valor": 3.0, "Ponta 2027 Anotacao": "D", "Fora Ponta 2027 Valor": 3.5, "Fora Ponta 2027 Anotacao": "D", "Ponta 2028 Valor": 3.0, "Ponta 2028 Anotacao": "D", "Fora Ponta 2028 Valor": 3.5, "Fora Ponta 2028 Anotacao": "D", "Anotacao": "O atendimento ao MUST fica condicionado à manutenibilidade da LT.", "ID_Problema": "PROB-001", "ID_Solucao": "SOL-001A" },
+            { "EMPRESA": "SUL E SUDESTE", "Cód ONS": "SPASS188", "Tensão (kV)": 88, "Ponta 2025 Valor": 44.7, "Ponta 2025 Anotacao": "E", "Fora Ponta 2025 Valor": 41.9, "Fora Ponta 2025 Anotacao": "E", "Ponta 2026 Valor": 44.7, "Ponta 2026 Anotacao": "E", "Fora Ponta 2026 Valor": 41.9, "Fora Ponta 2026 Anotacao": "E", "Ponta 2027 Valor": 44.7, "Ponta 2027 Anotacao": "E", "Fora Ponta 2027 Valor": 41.9, "Fora Ponta 2027 Anotacao": "E", "Ponta 2028 Valor": 44.7, "Ponta 2028 Anotacao": "E", "Fora Ponta 2028 Valor": 41.9, "Fora Ponta 2028 Anotacao": "E", "Anotacao": "No ponto de ASSIS I 88 kV, a USUÁRIA declarou valores de MUST.", "ID_Problema": "PROB-002", "ID_Solucao": "SOL-002B" },
+            { "EMPRESA": "PIRATININGA", "Cód ONS": "SPBAST138", "Tensão (kV)": 138, "Ponta 2025 Valor": 19.8, "Ponta 2025 Anotacao": "nan", "Fora Ponta 2025 Valor": 20.4, "Fora Ponta 2025 Anotacao": "nan", "Ponta 2026 Valor": 20.1, "Ponta 2026 Anotacao": "nan", "Fora Ponta 2026 Valor": 20.7, "Fora Ponta 2026 Anotacao": "nan", "Ponta 2027 Valor": 20.4, "Ponta 2027 Anotacao": "nan", "Fora Ponta 2027 Valor": 21.0, "Fora Ponta 2027 Anotacao": "nan", "Ponta 2028 Valor": 20.7, "Ponta 2028 Anotacao": "nan", "Fora Ponta 2028 Valor": 21.3, "Fora Ponta 2028 Anotacao": "nan", "Anotacao": "nan", "ID_Problema": "nan", "ID_Solucao": "nan" },
+            { "EMPRESA": "ELETROPAULO", "Cód ONS": "SPBRB-138", "Tensão (kV)": 138, "Ponta 2025 Valor": 23.9, "Ponta 2025 Anotacao": "P", "Fora Ponta 2025 Valor": 24.4, "Fora Ponta 2025 Anotacao": "P", "Ponta 2026 Valor": 23.9, "Ponta 2026 Anotacao": "P", "Fora Ponta 2026 Valor": 24.4, "Fora Ponta 2026 Anotacao": "P", "Ponta 2027 Valor": 23.9, "Ponta 2027 Anotacao": "P", "Fora Ponta 2027 Valor": 24.4, "Fora Ponta 2027 Anotacao": "P", "Ponta 2028 Valor": 23.9, "Ponta 2028 Anotacao": "P", "Fora Ponta 2028 Valor": 24.4, "Fora Ponta 2028 Anotacao": "P", "Anotacao": "No ponto de BORBOREMA 138 kV, a USUÁRIA declarou valores.", "ID_Problema": "PROB-003", "ID_Solucao": "nan" }
         ];
 
         // --- COMPONENTES ---
 
-        const CompanyCard = ({ company, stats }) => (
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
-                <h3 className="text-xl font-bold text-white truncate" title={company}>{company}</h3>
-                <div className="mt-4 flex-grow space-y-2">
-                    <p className="text-gray-400 text-sm">Total de Pontos: <span className="font-bold text-white">{stats.totalPoints}</span></p>
-                    <p className="text-gray-400 text-sm">Pontos com Ressalva: <span className="font-bold text-yellow-400">{stats.withRemarks}</span></p>
+        const CompanyCard = ({ company, stats }) => {
+            const percentage = stats.total > 0 ? (stats.withRemarks / stats.total) * 100 : 0;
+            return (
+                <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 className="text-xl font-bold text-white truncate" title={company}>{company}</h3>
+                    <div className="mt-4">
+                        <div className="flex justify-between text-gray-400 text-sm">
+                            <span>Solicitações com Ressalva</span>
+                            <span className="font-bold text-white">{stats.withRemarks} / {stats.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                            <div className="bg-yellow-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        };
         
         const AnnotationModal = ({ content, onClose }) => {
             if (!content) return null;
@@ -75,12 +84,84 @@
                 </div>
             );
         };
+        
+        const PieChart = ({ data }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+                const ctx = chartRef.current.getContext('2d');
+                chartInstance.current = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Aprovado', 'Com Ressalva'],
+                        datasets: [{
+                            data: [data.approved, data.withRemarks],
+                            backgroundColor: ['#22c55e', '#f59e0b'],
+                            borderColor: '#1f2937',
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: '#d1d5db'
+                                }
+                            }
+                        }
+                    }
+                });
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [data]);
+
+            return <div className="h-64 md:h-80"><canvas ref={chartRef}></canvas></div>;
+        };
 
         // --- COMPONENTE PRINCIPAL ---
         function App() {
-            const [allData, setAllData] = useState(mockData); // Carrega os dados mockados diretamente
+            const [allData, setAllData] = useState([]);
             const [filters, setFilters] = useState({ year: '2025', period: 'Ponta', company: 'all', search: '' });
             const [modalContent, setModalContent] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [history, setHistory] = useState([]);
+
+            useEffect(() => {
+                // Simula o fetch para evitar erros de CORS no ambiente de preview
+                try {
+                    setAllData(mockData);
+                    addToHistory('Dados iniciais carregados.');
+                } catch (err) {
+                    setError('Falha ao carregar dados mockados.');
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            const addToHistory = (action) => {
+                const timestamp = new Date().toLocaleTimeString('pt-BR');
+                setHistory(prev => [`[${timestamp}] ${action}`, ...prev].slice(0, 10));
+            };
+
+            const handleFilterChange = (e) => {
+                const { name, value } = e.target;
+                setFilters(prev => {
+                    const newFilters = { ...prev, [name]: value };
+                    addToHistory(`Filtro '${name}' alterado para '${value}'.`);
+                    return newFilters;
+                });
+            };
             
             const hasRemarkInPeriod = (item, year, period) => {
                 const annotationKey = `${period} ${year} Anotacao`;
@@ -90,48 +171,34 @@
                        (generalAnnotation && String(generalAnnotation).trim().toLowerCase() !== 'nan');
             };
 
-            const processedData = useMemo(() => {
-                if (!allData || allData.length === 0) return [];
-                return allData.map((item, index) => {
-                    let filePath = '#'; // Caminho padrão
-                    const empresa = item.EMPRESA;
-                    
-                    if (empresa === 'SUL E SUDESTE') {
-                        filePath = 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN';
-                    } else if (empresa === 'ELETROPAULO') {
-                        filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho`;
-                    } else if (empresa === "PIRATININGA") {
-                        filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9`;
-                    } else if (empresa === "NEOENERGIA ELEKTRO") {
-                        filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/Eet4gEXFfDNEoPMejiLnMaQBVW1ubN1TxOIvMtLY0yUfPA?e=WruSdk`;
-                    } else if (empresa === "JAGUARI") {
-                        filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2`;
-                    }
-                    
-                    return { ...item, arquivoReferencia: filePath };
-                });
+            const globalStats = useMemo(() => {
+                if (!allData || allData.length === 0) return { approved: 0, withRemarks: 0 };
+                // Para o gráfico de pizza, consideramos o status no período de 2025 Ponta como referência
+                const withRemarks = allData.filter(item => hasRemarkInPeriod(item, '2025', 'Ponta')).length;
+                const approved = allData.length - withRemarks;
+                return { approved, withRemarks };
             }, [allData]);
 
             const valueKey = useMemo(() => `${filters.period} ${filters.year} Valor`, [filters.period, filters.year]);
             const annotationKey = useMemo(() => `${filters.period} ${filters.year} Anotacao`, [filters.period, filters.year]);
 
             const filteredData = useMemo(() => {
-                return processedData.filter(item => {
+                return allData.filter(item => {
                     const companyMatch = filters.company === 'all' || item.EMPRESA === filters.company;
                     const searchTerm = filters.search.toLowerCase();
                     const searchMatch = !searchTerm ||
                         Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm));
                     return companyMatch && searchMatch;
                 });
-            }, [processedData, filters]);
+            }, [allData, filters]);
 
             const companyAnalysis = useMemo(() => {
                 const companyData = {};
                 filteredData.forEach(item => {
                     if (!companyData[item.EMPRESA]) {
-                        companyData[item.EMPRESA] = { totalPoints: 0, withRemarks: 0 };
+                        companyData[item.EMPRESA] = { total: 0, withRemarks: 0 };
                     }
-                    companyData[item.EMPRESA].totalPoints++;
+                    companyData[item.EMPRESA].total++;
                     if (hasRemarkInPeriod(item, filters.year, filters.period)) {
                         companyData[item.EMPRESA].withRemarks++;
                     }
@@ -140,11 +207,6 @@
             }, [filteredData, filters.year, filters.period]);
             
             const availableCompanies = useMemo(() => [...new Set(allData.map(item => item.EMPRESA))].sort(), [allData]);
-
-            const handleFilterChange = (e) => {
-                const { name, value } = e.target;
-                setFilters(prev => ({ ...prev, [name]: value }));
-            };
 
             const handleRemarkClick = (item) => {
                 const specificAnnotation = item[annotationKey];
@@ -161,6 +223,9 @@
                 }
             };
 
+            if (loading) return <div className="text-center p-8">Carregando dados...</div>;
+            if (error) return <div className="container mx-auto p-4 md:p-8"><ErrorDisplay error={error} /></div>;
+
             return (
                 <React.Fragment>
                     <div className="container mx-auto p-4 md:p-8">
@@ -168,6 +233,35 @@
                             <h1 className="text-3xl md:text-4xl font-bold text-white">Dashboard de Análise de Pontos MUST</h1>
                             <p className="text-gray-400 mt-2">Visão geral das solicitações e ressalvas por empresa e ponto de conexão.</p>
                         </header>
+
+                        <section className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="md:col-span-2 bg-gray-800 p-6 rounded-lg">
+                                <h2 className="text-2xl font-bold text-white mb-4">Estatísticas Gerais (Todos os Anos)</h2>
+                                <p className="text-gray-400 mb-4">Gráfico de pizza representando o status dos pontos (baseado em 2025 Ponta).</p>
+                                <PieChart data={globalStats} />
+                            </div>
+                            <div className="bg-gray-800 p-6 rounded-lg">
+                                <h2 className="text-2xl font-bold text-white mb-4">Resumo</h2>
+                                <div className="space-y-4">
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <p className="text-gray-400 text-sm">Total de Pontos (Todos os Anos)</p>
+                                        <p className="text-2xl font-bold text-white">{allData.length}</p>
+                                    </div>
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <p className="text-gray-400 text-sm">Total de Empresas</p>
+                                        <p className="text-2xl font-bold text-white">{availableCompanies.length}</p>
+                                    </div>
+                                    <div className="bg-gray-700 p-4 rounded-lg">
+                                        <p className="text-gray-400 text-sm">Pontos Aprovados (2025 Ponta)</p>
+                                        <p className="text-2xl font-bold text-green-400">{globalStats.approved}</p>
+                                    </div>
+                                     <div className="bg-gray-700 p-4 rounded-lg">
+                                        <p className="text-gray-400 text-sm">Pontos com Ressalva (2025 Ponta)</p>
+                                        <p className="text-2xl font-bold text-yellow-400">{globalStats.withRemarks}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
 
                         <section className="mb-8">
                             <h2 className="text-2xl font-bold text-white mb-4">Análise por Empresa ({`${filters.period} ${filters.year}`})</h2>
@@ -205,44 +299,37 @@
                                     <input type="text" id="search-input" name="search" value={filters.search} onChange={handleFilterChange} className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Buscar..." />
                                 </div>
                             </div>
-
+                            
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left text-gray-300">
                                     <thead className="text-xs text-gray-400 uppercase bg-gray-700">
                                         <tr>
-                                            <th className="px-4 py-3">Empresa</th>
-                                            <th className="px-4 py-3">Cód ONS</th>
-                                            <th className="px-4 py-3">Valor ({filters.period})</th>
-                                            <th className="px-4 py-3 text-center">Possui Ressalva?</th>
-                                            <th className="px-4 py-3">Arquivo de Referência</th>
+                                            <th className="px-4 py-3">Ponto (Cód ONS)</th>
+                                            <th className="px-4 py-3">Demanda Agente</th>
+                                            <th className="px-4 py-3">ID Problema</th>
+                                            <th className="px-4 py-3">ID Solução</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {filteredData.length > 0 ? filteredData.map((item, index) => {
-                                            const hasRemark = hasRemarkInPeriod(item, filters.year, filters.period);
-                                            return (
-                                                <tr key={`${item['Cód ONS']}-${index}`} className="bg-gray-800 border-b border-gray-700">
-                                                    <td className="px-4 py-2 font-medium text-white">{item.EMPRESA}</td>
-                                                    <td className="px-4 py-2">{item['Cód ONS']}</td>
-                                                    <td className="px-4 py-2">{item[valueKey]}</td>
-                                                    <td className="px-4 py-2 text-center">
-                                                        {hasRemark
-                                                            ? <button onClick={() => handleRemarkClick(item)} className="inline-block px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full hover:bg-yellow-300">Sim</button>
-                                                            : <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-400 rounded-full">Não</span>
-                                                        }
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <a href={item.arquivoReferencia} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
-                                                            Abrir PDF
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }) : (
-                                            <tr><td colSpan="5" className="text-center py-8 text-gray-400">Nenhum resultado encontrado.</td></tr>
-                                        )}
+                                    <tbody className="divide-y divide-gray-700">
+                                        {filteredData.filter(item => hasRemarkInPeriod(item, filters.year, filters.period)).map((item, index) => (
+                                            <tr key={`${item['Cód ONS']}-${index}-analysis`} className="hover:bg-gray-700">
+                                                <td className="px-4 py-2 font-medium text-white">{item['Cód ONS']}</td>
+                                                <td className="px-4 py-2">{item[valueKey]}</td>
+                                                <td className="px-4 py-2">{item['ID_Problema']}</td>
+                                                <td className="px-4 py-2">{item['ID_Solucao']}</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </section>
+
+                        <section className="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+                            <h2 className="text-2xl font-bold text-white mb-4">Histórico de Análises da Sessão</h2>
+                            <div className="bg-gray-900 rounded-md p-4 h-40 overflow-y-auto text-sm text-gray-400 font-mono">
+                                {history.length > 0 ? history.map((entry, index) => (
+                                    <p key={index}>{entry}</p>
+                                )) : <p>Nenhuma ação registrada ainda.</p>}
                             </div>
                         </section>
                     </div>
