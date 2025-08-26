@@ -148,13 +148,18 @@
                     // *** É AQUI QUE VOCÊ PODE ADICIONAR SUA LÓGICA DE 'IF/ELSE' ***
                     // Exemplo:
                     if (empresa === 'SUL E SUDESTE') {
-                         filePath = 'https://onsbr-my.sharepoint.com/:f:/g/personal/pedrovictor_veras_ons_org_br/EkHYFsCO01dFnFg5rKfamLgB-CBu9blsCgRvueKjFZftng?e=sg25li';
+                         filePath = 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN';
                      } else if (empresa === 'ELETROPAULO') {
                          filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho`;
                      } else if (empresa == "PIRATININGA") {
                             filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9`;
-                     }
-                     
+                     } else if (empresa == "NEOENERGIA ELEKTRO") {
+                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/Eet4gEXFfDNEoPMejiLnMaQBVW1ubN1TxOIvMtLY0yUfPA?e=WruSdk`;
+                     } else if (empresa == "ELETROPAULO") {
+                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2`;
+                     } else if (empresa == "JAGUARI") {
+                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2`;
+                     } 
                      else {
                          // Lógica padrão que você criou
                          filePath = `MUST_${empresa.replace(/\s+/g, "_")}_${index}.pdf`;
