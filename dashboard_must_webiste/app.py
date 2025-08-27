@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, send_from_directory
 import os
 
@@ -43,7 +42,7 @@ class PikachuServer:
                 O conteúdo renderizado de index.html.
             """
             # Renderiza o arquivo HTML principal do seu dashboard.
-            return render_template('index.html')
+            return self.app.send_static_file('index.html')
 
         @self.app.route('/<path:filename>')
         def serve_static_files(filename):
@@ -67,7 +66,7 @@ class PikachuServer:
             port (int): A porta que o servidor irá escutar.
         """
         print(f" * Servidor Pikachu rodando em http://{host}:{port}")
-        print(f" * Acesse http://127.0.0.1:{port} no seu navegador.")
+        print(f"\n* Acesse http://127.0.0.1:{port} no seu navegador para acessar o frontend")
         self.app.run(host=host, port=port, debug=True)
 
 # Ponto de entrada da aplicação
@@ -88,3 +87,6 @@ if __name__ == '__main__':
     # Cria uma instância do servidor e o inicia.
     server = PikachuServer()
     server.run_server()
+
+
+
