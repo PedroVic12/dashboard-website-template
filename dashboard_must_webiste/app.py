@@ -27,7 +27,7 @@ class PikachuServer:
         'must_tables_PDF_notes_merged.json'.
         """
         # O '.' indica que a pasta raiz do projeto é o diretório atual.
-        self.app = Flask(__name__, template_folder='.', static_folder='.')
+        self.app = Flask(__name__, template_folder='templates', static_folder='static')
 
     def setup_routes(self):
         """
@@ -42,7 +42,7 @@ class PikachuServer:
                 O conteúdo renderizado de index.html.
             """
             # Renderiza o arquivo HTML principal do seu dashboard.
-            return self.app.send_static_file('index.html')
+            return render_template('index.html')
 
         @self.app.route('/<path:filename>')
         def serve_static_files(filename):
@@ -55,7 +55,7 @@ class PikachuServer:
                 O arquivo solicitado do diretório raiz.
             """
             # Envia arquivos como 'must_tables_PDF_notes_merged.json' para o cliente.
-            return send_from_directory('.', filename)
+            return send_from_directory(self.app.static_folder, filename)
 
     def run_server(self, host='0.0.0.0', port=8080):
         """
