@@ -24,6 +24,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fundo cinza escuro para a página inteira */
         }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
@@ -33,7 +34,7 @@
     </style>
 </head>
 
-<body class="bg-gray-900 text-gray-200">
+<body class="text-gray-200">
     <!-- O React vai renderizar a aplicação dentro desta div -->
     <div id="root"></div>
 
@@ -73,7 +74,7 @@
             if (!content) return null;
             return (
                 <div 
-                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 modal-overlay"
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 modal-overlay z-50"
                     style={{ opacity: 1 }}
                     onClick={onClose}
                 >
@@ -102,12 +103,84 @@
             </div>
         );
 
+        // --- COMPONENTE DE FILTROS ---
+        const FilterControls = ({ filters, setFilters, uniqueCompaniesList, initialFilters }) => {
+            const handleFilterChange = (e) => {
+                const { name, value } = e.target;
+                setFilters(prev => ({ ...prev, [name]: value }));
+            };
+
+            const clearFilters = () => {
+                setFilters(initialFilters);
+            };
+            
+            const selectStyle = "w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500";
+            const inputStyle = "w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500";
+
+            return (
+                 <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {/* Filtro por Empresa (Existente) */}
+                        <div>
+                            <label htmlFor="company-filter" className="block text-sm font-medium text-gray-400 mb-1">Empresa</label>
+                            <select id="company-filter" name="company" value={filters.company} onChange={handleFilterChange} className={selectStyle}>
+                                <option value="all">Todas</option>
+                                {uniqueCompaniesList.map(company => (
+                                    <option key={company} value={company}>{company}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Pesquisa (Existente) */}
+                         <div>
+                            <label htmlFor="search-input" className="block text-sm font-medium text-gray-400 mb-1">Pesquisar</label>
+                            <input type="text" id="search-input" name="search" value={filters.search} onChange={handleFilterChange} className={inputStyle} placeholder="Cód ONS, Ressalva..." />
+                        </div>
+                        
+                        {/* Exemplos de novos filtros (placeholders) */}
+                        <div>
+                            <label htmlFor="agent-type-filter" className="block text-sm font-medium text-gray-400 mb-1">Tipo do Agente</label>
+                            <select id="agent-type-filter" name="agentType" value={filters.agentType} onChange={handleFilterChange} className={selectStyle}>
+                                <option value="all">Todos</option>
+                                {/* Adicionar options dinamicamente aqui */}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="status-filter" className="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                            <select id="status-filter" name="status" value={filters.status} onChange={handleFilterChange} className={selectStyle}>
+                                <option value="all">Todos</option>
+                                {/* Adicionar options dinamicamente aqui */}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="period-filter" className="block text-sm font-medium text-gray-400 mb-1">Período</label>
+                            <select id="period-filter" name="period" value={filters.period} onChange={handleFilterChange} className={selectStyle}>
+                                <option value="all">Todos</option>
+                                {/* Adicionar options dinamicamente aqui */}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="mt-6 flex flex-col sm:flex-row justify-end items-center gap-4">
+                        <button onClick={clearFilters} className="w-full sm:w-auto px-6 py-2 border border-gray-500 hover:bg-gray-700 text-white font-semibold rounded-lg transition">Limpar</button>
+                        <button className="w-full sm:w-auto px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition">Filtrar</button>
+                    </div>
+                </div>
+            );
+        };
+
 
         // --- COMPONENTE PRINCIPAL DA APLICAÇÃO ---
         function App() {
             // --- ESTADO DA APLICAÇÃO ---
             const [data, setData] = useState([]);
-            const [filters, setFilters] = useState({ company: 'all', search: '' });
+            const initialFilters = {
+                company: 'all',
+                search: '',
+                agentType: 'all',
+                status: 'all',
+                period: 'all'
+            };
+            const [filters, setFilters] = useState(initialFilters);
             const [modalContent, setModalContent] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -136,34 +209,21 @@
 
             // --- PROCESSAMENTO DOS DADOS PARA ADICIONAR CAMINHOS DE ARQUIVO ---
             const processedData = useMemo(() => {
-                if (!data || data.length === 0) {
-                    return [];
-                }
-
-                // Mapeamento centralizado de empresas para links para maior clareza e manutenção
+                if (!data || data.length === 0) return [];
                 const companyLinks = {
                     'SUL SUDESTE': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN',
                     'ELETROPAULO': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho',
                     'PIRATININGA': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9',
                     'NEOENERGIA ELEKTRO': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/Eet4gEXFfDNEoPMejiLnMaQBVW1ubN1TxOIvMtLY0yUfPA?e=WruSdk',
                     'JAGUARI': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2',
-                    'CPFL PAULISTA': 'https://onsbr-my.sharepoint.com/:b:/g/personal/insira_o_link_correto_aqui'
+                    'CPFL PAULISTA': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN' // Exemplo, substitua pelo link correto
                 };
-
                 return data.map((item) => {
-                    // Normaliza o nome da empresa para a busca (remove espaços extras e converte para maiúsculas)
                     const normalizedEmpresa = item.EMPRESA ? String(item.EMPRESA).trim().toUpperCase() : '';
-                    
-                    // Atribui o link correspondente ou '#' se não encontrado
                     const filePath = companyLinks[normalizedEmpresa] || '#';
-                    
-                    // Adiciona um log no console para verificação
-                    console.log(`Empresa: "${item.EMPRESA}" (Normalizado: "${normalizedEmpresa}") -> Link atribuído: ${filePath}`);
-
                     return { ...item, arquivoReferencia: filePath };
                 });
             }, [data]);
-
 
             // --- CÁLCULOS E FILTRAGEM (USANDO DADOS PROCESSADOS) ---
             const kpis = useMemo(() => {
@@ -201,16 +261,15 @@
                     const searchMatch = !searchTerm ||
                         String(item['Cód ONS']).toLowerCase().includes(searchTerm) ||
                         (item.Anotacao && String(item.Anotacao).toLowerCase().includes(searchTerm));
-                    return companyMatch && searchMatch;
+                    
+                    // Adicione a lógica para os novos filtros aqui quando os dados estiverem disponíveis
+                    // const agentTypeMatch = filters.agentType === 'all' || item.TipoAgente === filters.agentType;
+                    
+                    return companyMatch && searchMatch; // && agentTypeMatch;
                 });
             }, [processedData, filters]);
 
-            // --- MANIPULadores de eventos ---
-            const handleFilterChange = (e) => {
-                const { name, value } = e.target;
-                setFilters(prev => ({ ...prev, [name]: value }));
-            };
-
+            // --- MANIPULADORES DE EVENTOS ---
             const handleRemarkClick = (annotation) => {
                 if (annotation && String(annotation).trim() !== 'nan') {
                     setModalContent(annotation);
@@ -241,7 +300,7 @@
                             <KpiCard title="% de Pontos com Ressalvas" value={kpis.percentageWithRemarks} unit="%" />
                         </section>
 
-                        <section className="mb-8">
+                         <section className="mb-8">
                             <h2 className="text-2xl font-bold text-white mb-4">Análise por Empresa</h2>
                             <div id="company-analysis-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {companyAnalysis.map(([company, stats]) => (
@@ -250,27 +309,15 @@
                             </div>
                         </section>
 
+                        <FilterControls 
+                            filters={filters}
+                            setFilters={setFilters}
+                            uniqueCompaniesList={uniqueCompaniesList}
+                            initialFilters={initialFilters}
+                        />
+
                         <section className="bg-gray-800 p-6 rounded-lg shadow-lg">
                             <h2 className="text-2xl font-bold text-white mb-4">Detalhes dos Pontos de Conexão</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <label htmlFor="company-filter" className="block text-sm font-medium text-gray-400 mb-1">Filtrar por Empresa</label>
-                                    <select id="company-filter" name="company" value={filters.company} onChange={handleFilterChange}
-                                        className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="all">Todas as Empresas</option>
-                                        {uniqueCompaniesList.map(company => (
-                                            <option key={company} value={company}>{company}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="search-input" className="block text-sm font-medium text-gray-400 mb-1">Pesquisar</label>
-                                    <input type="text" id="search-input" name="search" value={filters.search} onChange={handleFilterChange}
-                                        className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Buscar por Cód ONS, Ressalva..." />
-                                </div>
-                            </div>
-
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left text-gray-300">
                                     <thead className="text-xs text-gray-400 uppercase bg-gray-700">
@@ -286,7 +333,7 @@
                                         {filteredData.length > 0 ? filteredData.map((item, index) => {
                                             const hasRemark = item.Anotacao && String(item.Anotacao).trim() !== 'nan';
                                             return (
-                                                <tr key={`${item['Cód ONS']}-${index}`}
+                                                <tr key={`${item['Cód ONS'] || index}-${index}`}
                                                     className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
                                                     <td className="px-6 py-4 font-medium text-white">{item.EMPRESA || ''}</td>
                                                     <td className="px-6 py-4">{item['Cód ONS'] || ''}</td>
