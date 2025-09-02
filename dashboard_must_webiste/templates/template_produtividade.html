@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtividade Mestre (UI Refinada)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Chart.js para Gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Estilo para a barra de rolagem, para um visual mais clean */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-2 sm:p-4 md:p-6 font-sans text-slate-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ====================================================================
+    // CONTROLLER DE "BANCO DE DADOS" (localStorage)
+    // ====================================================================
+    class DatabaseController {
+        constructor(key = 'produtividadeMestreApp_v4_cleanUI') {
+            this.key = key;
+        }
+        load() {
+            try {
+                const data = localStorage.getItem(this.key);
+                return data ? JSON.parse(data) : null;
+            } catch (error) { console.error("Erro ao carregar dados:", error); return null; }
+        }
+        save(state) {
+            try {
+                const data = JSON.stringify(state);
+                localStorage.setItem(this.key, data);
+            } catch (error) { console.error("Erro ao salvar dados:", error); }
+        }
+    }
+
+    // ====================================================================
+    // COMPONENTES DA APLICAÇÃO
+    // ====================================================================
+
+    // -----------------------------
+    // Componente: Checklist (Com modo Edição/Visualização)
+    // -----------------------------
+    function Checklist({ 
+        markdownText, tasks, updateMarkdown, toggleTask, 
+        inputMode, setInputMode, githubUrl, setGithubUrl, handleFetch, loading, error 
+    }) {
+        const [isEditing, setIsEditing] = useState(false);
+
+        const TaskList = ({ tasks, toggleTask }) => {
+            const groupedTasks = tasks.reduce((acc, task) => {
+                acc[task.category] = acc[task.category] || [];
+                acc[task.category].push(task);
+                return acc;
+            }, {});
+
+            return (
+                <div className="space-y-4">
+                    {Object.entries(groupedTasks).map(([category, items]) => (
+                        <div key={category}>
+                            <h3 className="font-bold text-lg mb-2 text-slate-700">{category}</h3>
+                            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+                                {items.map((task, index) => (
+                                    <div key={task.id} className={`flex items-center p-3 hover:bg-slate-50 ${index < items.length - 1 ? 'border-b border-slate-200' : ''}`}>
+                                        <input type="checkbox" checked={task.done} onChange={() => toggleTask(task.id)} className="ml-1 mr-4 w-5 h-5 accent-blue-600 rounded cursor-pointer flex-shrink-0" />
+                                        <label className={`flex-grow cursor-pointer text-sm sm:text-base ${task.done ? "line-through text-slate-400" : "text-slate-700"}`} onClick={() => toggleTask(task.id)}>{task.item}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        return (
+            <div className="p-2 sm:p-4">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 className="text-2xl font-bold text-slate-800">📖 Checklist Central</h2>
+                    <button onClick={() => setIsEditing(!isEditing)} className="px-4 py-2 text-sm font-semibold bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
+                        {isEditing ? 'Ver Checklist' : 'Editar Markdown'}
+                    </button>
+                </div>
+                
+                <div className="bg-slate-200/50 p-3 sm:p-4 rounded-lg mb-6">
+                    <div className="flex items-center space-x-4 mb-4">
+                        <label className="cursor-pointer text-sm font-medium"><input type="radio" name="inputMode" value="text" checked={inputMode === 'text'} onChange={(e) => setInputMode(e.target.value)} className="mr-1"/> Digitar</label>
+                        <label className="cursor-pointer text-sm font-medium"><input type="radio" name="inputMode" value="url" checked={inputMode === 'url'} onChange={(e) => setInputMode(e.target.value)} className="mr-1"/> URL</label>
+                    </div>
+                    {inputMode === 'url' && (
+                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                            <input type="text" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} placeholder="Cole a URL RAW do arquivo .md do GitHub" className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                            <button onClick={handleFetch} disabled={loading} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300">{loading ? 'Buscando...' : 'Buscar'}</button>
+                        </div>
+                    )}
+                    {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
+                </div>
+                
+                {isEditing ? (
+                     <textarea value={markdownText} onChange={(e) => updateMarkdown(e.target.value)} className="w-full h-64 sm:h-96 p-3 border border-slate-300 rounded-lg font-mono text-sm bg-white focus:ring-2 focus:ring-blue-500" placeholder="Digite ou cole seu checklist aqui..." />
+                ) : (
+                    <TaskList tasks={tasks} toggleTask={toggleTask} />
+                )}
+            </div>
+        );
+    }
+    
+    // -----------------------------
+    // Componente: Matriz de Eisenhower
+    // -----------------------------
+    function MatrizEisenhower({ tasks, moveTask }) {
+        const quadrants = {
+            'U-I': { title: "🔥 Urgente & Importante", color: "red", items: tasks.filter(t => t.quadrant === 'U-I' && !t.done) },
+            'NU-I': { title: "✅ Não Urgente & Importante", color: "blue", items: tasks.filter(t => t.quadrant === 'NU-I' && !t.done) },
+            'U-NI': { title: "⚠️ Urgente & Não Importante", color: "yellow", items: tasks.filter(t => t.quadrant === 'U-NI' && !t.done) },
+            'NU-NI': { title: "🗑️ Não Urgente & Não Importante", color: "gray", items: tasks.filter(t => t.quadrant === 'NU-NI' && !t.done) }
+        };
+        const handleDragStart = (e, taskId) => e.dataTransfer.setData("taskId", taskId);
+        const handleDrop = (e, toQuadrant) => moveTask(e.dataTransfer.getData("taskId"), toQuadrant);
+        const handleDragOver = (e) => e.preventDefault();
+        return (
+            <div className="p-2 sm:p-4"><h2 className="text-2xl font-bold mb-4 text-slate-800">⏳ Matriz Eisenhower</h2><div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><div className="bg-white rounded-xl shadow-md p-4 min-h-[200px] border-t-4 border-red-500" onDrop={(e)=>handleDrop(e,'U-I')} onDragOver={handleDragOver}><h3 className="font-semibold mb-3 text-lg text-red-600">{quadrants['U-I'].title}</h3><ul className="space-y-2">{quadrants['U-I'].items.map(t=>(<li key={t.id} draggable onDragStart={(e)=>handleDragStart(e,t.id)} className="border border-slate-200 rounded-lg p-2 cursor-move bg-slate-50 hover:bg-slate-100 text-sm">{t.item}</li>))}{quadrants['U-I'].items.length === 0 && <p className="text-slate-400 text-sm">Arraste tarefas para cá</p>}</ul></div><div className="bg-white rounded-xl shadow-md p-4 min-h-[200px] border-t-4 border-blue-500" onDrop={(e)=>handleDrop(e,'NU-I')} onDragOver={handleDragOver}><h3 className="font-semibold mb-3 text-lg text-blue-600">{quadrants['NU-I'].title}</h3><ul className="space-y-2">{quadrants['NU-I'].items.map(t=>(<li key={t.id} draggable onDragStart={(e)=>handleDragStart(e,t.id)} className="border border-slate-200 rounded-lg p-2 cursor-move bg-slate-50 hover:bg-slate-100 text-sm">{t.item}</li>))}{quadrants['NU-I'].items.length === 0 && <p className="text-slate-400 text-sm">Tarefas de backlog aparecem aqui.</p>}</ul></div><div className="bg-white rounded-xl shadow-md p-4 min-h-[200px] border-t-4 border-yellow-500" onDrop={(e)=>handleDrop(e,'U-NI')} onDragOver={handleDragOver}><h3 className="font-semibold mb-3 text-lg text-yellow-600">{quadrants['U-NI'].title}</h3><ul className="space-y-2">{quadrants['U-NI'].items.map(t=>(<li key={t.id} draggable onDragStart={(e)=>handleDragStart(e,t.id)} className="border border-slate-200 rounded-lg p-2 cursor-move bg-slate-50 hover:bg-slate-100 text-sm">{t.item}</li>))}{quadrants['U-NI'].items.length === 0 && <p className="text-slate-400 text-sm">Arraste tarefas para cá</p>}</ul></div><div className="bg-white rounded-xl shadow-md p-4 min-h-[200px] border-t-4 border-slate-500" onDrop={(e)=>handleDrop(e,'NU-NI')} onDragOver={handleDragOver}><h3 className="font-semibold mb-3 text-lg text-slate-600">{quadrants['NU-NI'].title}</h3><ul className="space-y-2">{quadrants['NU-NI'].items.map(t=>(<li key={t.id} draggable onDragStart={(e)=>handleDragStart(e,t.id)} className="border border-slate-200 rounded-lg p-2 cursor-move bg-slate-50 hover:bg-slate-100 text-sm">{t.item}</li>))}{quadrants['NU-NI'].items.length === 0 && <p className="text-slate-400 text-sm">Arraste tarefas para cá</p>}</ul></div></div></div>
+        );
+    }
+
+    // -----------------------------
+    // Componente: Pomodoro Timer
+    // -----------------------------
+    function PomodoroTimer({ tasks, logSession }) {
+        const [time, setTime] = useState(25 * 60);
+        const [running, setRunning] = useState(false);
+        const [mode, setMode] = useState('pomodoro');
+        const [selectedCategory, setSelectedCategory] = useState('');
+        const [selectedTaskId, setSelectedTaskId] = useState('');
+
+        const categories = [...new Set(tasks.map(t => t.category))];
+        const tasksInCategory = tasks.filter(t => t.category === selectedCategory && !t.done);
+
+        useEffect(() => {
+            let interval;
+            if (running && time > 0) {
+                document.title = `${formatTime(time)} - Foco`;
+                interval = setInterval(() => setTime(t => t - 1), 1000);
+            } else if (running && time === 0) {
+                setRunning(false); document.title = "Produtividade Mestre";
+                if (mode === 'pomodoro' && selectedTaskId) {
+                    logSession(25 * 60, selectedTaskId);
+                    alert(`Sessão de foco na tarefa concluída! A tarefa foi marcada como feita.`);
+                    setSelectedTaskId(''); 
+                } else { alert(`Pausa finalizada!`); }
+            }
+            return () => { clearInterval(interval); document.title = "Produtividade Mestre"; };
+        }, [running, time, selectedTaskId]);
+
+        const selectMode = (newMode, newTime) => { setMode(newMode); setTime(newTime); setRunning(false); };
+        const formatTime = (t) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+
+        return (
+            <div className="p-2 sm:p-4 flex flex-col items-center justify-center h-full">
+                <h2 className="text-2xl font-bold mb-4 text-slate-800">⏱️ Pomodoro Timer</h2>
+                <div className="w-full max-w-md bg-white p-4 rounded-lg shadow-md border border-slate-200 mb-6">
+                    <h3 className="font-semibold text-slate-700 mb-2">Selecione uma Tarefa para Focar</h3>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                         <select value={selectedCategory} onChange={e => { setSelectedCategory(e.target.value); setSelectedTaskId(''); }} className="flex-1 p-2 border border-slate-300 rounded-lg bg-slate-50 text-sm"><option value="">-- Categoria --</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                         <select value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)} disabled={!selectedCategory || tasksInCategory.length === 0} className="flex-1 p-2 border border-slate-300 rounded-lg bg-slate-50 disabled:bg-slate-200 text-sm"><option value="">-- Tarefa --</option>{tasksInCategory.map(t => <option key={t.id} value={t.id}>{t.item}</option>)}</select>
+                    </div>
+                </div>
+                <div className="flex space-x-2 mb-6">
+                    <button onClick={() => selectMode('pomodoro', 25 * 60)} className={`px-3 py-1 rounded-full text-sm font-semibold ${mode === 'pomodoro' ? 'bg-red-500 text-white shadow' : 'bg-slate-200 text-slate-600'}`}>Pomodoro</button>
+                    <button onClick={() => selectMode('short', 5 * 60)} className={`px-3 py-1 rounded-full text-sm font-semibold ${mode === 'short' ? 'bg-green-500 text-white shadow' : 'bg-slate-200 text-slate-600'}`}>Pausa Curta</button>
+                </div>
+                <div className="text-5xl sm:text-7xl font-mono text-slate-800 mb-6">{formatTime(time)}</div>
+                <div className="space-x-4">
+                    <button onClick={() => setRunning(!running)} disabled={mode === 'pomodoro' && !selectedTaskId} className="px-8 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition text-lg w-32 disabled:bg-slate-300 disabled:cursor-not-allowed">{running ? 'Pausar' : 'Iniciar'}</button>
+                </div>
+            </div>
+        );
+    }
+    
+    // -----------------------------
+    // Componente: Gráficos
+    // -----------------------------
+    function Graficos({ logs }) {
+        const dailyChartRef = useRef(null);
+        const weeklyChartRef = useRef(null);
+        useEffect(() => {
+            const today = new Date().setHours(0,0,0,0);
+            const totalTodayHours = logs.filter(l => new Date(l.timestamp).setHours(0,0,0,0) === today).reduce((s,l)=>s+l.duration,0) / 3600;
+            const weeklyData=Array(7).fill(0), labels=[];
+            for(let i=6;i>=0;i--){
+                const d=new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+                labels.push(d.toLocaleDateString('pt-BR',{weekday:'short'}));
+                weeklyData[6-i]=logs.filter(l=>new Date(l.timestamp).setHours(0,0,0,0)===d.getTime()).reduce((s,l)=>s+l.duration,0)/3600;
+            }
+            const dailyCtx=dailyChartRef.current.getContext('2d'), weeklyCtx=weeklyChartRef.current.getContext('2d');
+            let dailyChart = new Chart(dailyCtx,{type:'doughnut',data:{labels:['Horas Focadas Hoje'],datasets:[{data:[totalTodayHours.toFixed(2)],backgroundColor:['#3b82f6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+            let weeklyChart = new Chart(weeklyCtx,{type:'bar',data:{labels,datasets:[{label:'Horas Focadas',data:weeklyData,backgroundColor:'#10b981',borderRadius:4}]},options:{scales:{y:{beginAtZero:true}},responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+            return()=>{dailyChart.destroy();weeklyChart.destroy();};
+        }, [logs]);
+        return (
+            <div className="p-2 sm:p-4"><h2 className="text-2xl font-bold mb-4 text-slate-800">📊 Gráficos de Produtividade</h2><div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><div className="bg-white p-4 rounded-lg shadow-md border border-slate-200"><h3 className="font-semibold mb-2 text-center text-slate-700">Foco Total Hoje</h3><div className="relative h-64"><canvas ref={dailyChartRef}></canvas></div></div><div className="bg-white p-4 rounded-lg shadow-md border border-slate-200"><h3 className="font-semibold mb-2 text-center text-slate-700">Foco nos Últimos 7 Dias</h3><div className="relative h-64"><canvas ref={weeklyChartRef}></canvas></div></div></div></div>
+        );
+    }
+
+    // ====================================================================
+    // COMPONENTE PRINCIPAL (CONTROLADOR DE ESTADO)
+    // ====================================================================
+    function App() {
+        const db = new DatabaseController();
+        const initialMarkdown = `# Estágio ONS __BACKLOG
+- [ ] Relatório + Reunião Semanal
+- [ ] Banco de Dados com SQL e relacionamentos com Dashboard Streamlit
+- [ ] Dashboard MUST webiste + Extração de Texto e Tabelas usando PyPDF2 e camelot em python com scripts separados
+- [ ] Controle de Casos Quadrimestre - 2030 (SEMANAL)
+- [ ] Estudos circuitos CA + Barra Swing + Barra Shunt
+- [ ] Análise de Contingências com PandaPower e AnaREDE (SEMANAL)
+- [ ] Controle de Casos 2030 - PLanilha Flow despacho (SEMANAL)
+- [ ] Estudo de Caso IEEE 14 + Canarinho e Resumo em PDF
+- [ ] Testar VBA na planilha de despacho no Windows 10 desktop COM ACESSO REMOTO (SEMANAL)
+- [ ]  Automação de MUST PDF com Power Query e Python (salvar scripts e validar projeto)
+- [ ] Frontend Streamlit Dashboard MUST - PDF extractor -> Banco de dados Access + HTML + JS + CSS
+- [ ] Automações RPA com Python
+- [ ] Projeto engenharia de dados com PySpark de Big Data
+- [ ] Projeto de análise de dados com storytelling com dashboard template
+
+# Eng. Elétrica UFF 2025 __BACKLOG
+- [ ] Minicurso CC + CD
+- [ ] Minicurso Matemática básica ENEM - Geometria Espacial e Logaritimos
+- [ ] Jedi Cyberpunk - Python com Métodos Numericos (pegar exemplos de eng dos códigos de matlab)
+- [ ] Modelagem de Circuitos Eletricos com Laplace ou Resposta completa da EDO
+- [ ] Caso de Uso Sympy - para resolver integral e derivada e fazer calculo na mão.
+- [ ] AstroML - Machine learning
+- [ ] Processamento Digital de Sinais
+- [ ] Leitura Orante do livo Teoria e controle moderno nos capitulos principais como: Cap 6,7,8 e 9 (metodos old - Lugar das Raízes e Resposta em Frequencia) e cap 11 e 13 (moderno com váriavaveis de estado)
+- [ ] Exercicios e Simulação de circuitos CC 1 e 2 ordem em regime permanente
+- [ ] Provas antigas e Exercícios de Circuitos e Eletromag
+- [ ] Projeto Final de IoT com Arduino + MQTT + Python Rest API + WebServer em C++ com Tela em index.html com análise de dados de séries temporais de Sensores de Luz, LDR e acionamento de LEDS e Buzzer.
+- [ ]  Circuito Contador JK com arduino
+- [ ] Estudar conteúdo de Sinais e Sistemas e Circuitos Digitais passando a limpo as anotações
+- [ ] Aulas UFF de forma autodidata usando Livros de Sistemas de Controle I, Analise de sistemas Elétricos I, DISP. Inteligentes, Circuitos CA - Sadiku
+- [ ] Aulas Circuitos Eletricos CA
+- [ ] Aulas IEDs
+- [ ] Análise de circuitos elétricos 2
+- [ ] Sistema de Controle 2
+- [ ] 1 cap. de um livro de matematica e fisica por dia
+- [ ] 2 Equações do dia`;
+
+        const [state, setState] = useState(() => {
+            const loaded = db.load();
+            return loaded || {
+                markdownText: initialMarkdown,
+                pomodoroLogs: [],
+                activeTab: 'matriz',
+                inputMode: 'text',
+                githubUrl: ''
+            };
+        });
+        
+        const [tasks, setTasks] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+
+        useEffect(() => { db.save(state); }, [state]);
+
+        useEffect(() => {
+            const quadrantTags = ['@U-I', '@U-NI', '@NU-I', '@NU-NI'];
+            const lines = state.markdownText.trim().split("\n"); let category = "Geral";
+            const parsed = lines.map((line, index) => {
+                const trimmedLine = line.trim();
+                if(trimmedLine.startsWith("#")){ category = trimmedLine.replace(/#/g,"").trim(); return null; }
+                if(trimmedLine.startsWith("- [")){
+                    const done = trimmedLine.includes("- [x]");
+                    let item = trimmedLine.substring(trimmedLine.indexOf("]")+1).trim();
+                    let quadrant = null;
+                    for(const tag of quadrantTags){ if(item.includes(tag)){ quadrant = tag.substring(1); item = item.replace(tag,'').trim(); break; } }
+                    if (!quadrant) { quadrant = 'NU-I'; }
+                    return{id:`task-${index}`,category,item,done,quadrant,originalLine:line};
+                } return null;
+            }).filter(Boolean);
+            setTasks(parsed);
+        }, [state.markdownText]);
+
+        const updateMarkdown = (newText) => setState(s => ({ ...s, markdownText: newText }));
+        
+        const toggleTask = (taskId) => {
+            const task = tasks.find(t => t.id === taskId); if (!task) return;
+            const newLine = task.done ? task.originalLine.replace('- [x]', '- [ ]') : task.originalLine.replace('- [ ]', '- [x]');
+            updateMarkdown(state.markdownText.replace(task.originalLine, newLine));
+        };
+        
+        const moveTask = (taskId, newQuadrant) => {
+            const task = tasks.find(t => t.id === taskId); if (!task) return;
+            let newLine = task.originalLine.replace(/@U-I|@U-NI|@NU-I|@NU-NI/g, '').trim();
+            updateMarkdown(state.markdownText.replace(task.originalLine, `${newLine} @${newQuadrant}`));
+        };
+        
+        const logSession = (duration, taskId) => {
+            const newLog = { taskId, duration, timestamp: new Date().toISOString() };
+            setState(s => ({...s, pomodoroLogs: [...s.pomodoroLogs, newLog] }));
+            const task = tasks.find(t => t.id === taskId);
+            if(task && !task.done){ toggleTask(taskId); }
+        };
+        
+        const handleFetch = async () => {
+            if(!state.githubUrl){setError("Por favor, insira uma URL.");return;}
+            setLoading(true); setError(null);
+            try {
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const res = await fetch(proxyUrl + encodeURIComponent(state.githubUrl));
+                if(!res.ok) throw new Error(`Erro: ${res.statusText}`);
+                const text = await res.text();
+                updateMarkdown(text);
+            } catch (err) { setError(err.message); } 
+            finally { setLoading(false); }
+        };
+
+        const tabs = [{ id: "checklist", label: "Checklist", icon: "📖" }, { id: "matriz", label: "Matriz", icon: "⏳" }, { id: "pomodoro", label: "Pomodoro", icon: "⏱️" }, { id: "graficos", label: "Gráficos", icon: "📊"}];
+        const renderContent = () => {
+            switch(state.activeTab) {
+                case "checklist": return <Checklist markdownText={state.markdownText} tasks={tasks} updateMarkdown={updateMarkdown} toggleTask={toggleTask} inputMode={state.inputMode} setInputMode={v=>setState(s=>({...s,inputMode:v}))} githubUrl={state.githubUrl} setGithubUrl={v=>setState(s=>({...s,githubUrl:v}))} handleFetch={handleFetch} loading={loading} error={error} />;
+                case "matriz": return <MatrizEisenhower tasks={tasks} moveTask={moveTask} />;
+                case "pomodoro": return <PomodoroTimer tasks={tasks} logSession={logSession} />;
+                case "graficos": return <Graficos logs={state.pomodoroLogs} />;
+                default: return null;
+            }
+        };
+
+        return (
+            <div className="max-w-7xl mx-auto bg-slate-50 rounded-2xl shadow-lg overflow-hidden border border-slate-200">
+                <header className="p-4 sm:p-5 border-b border-slate-200">
+                    <div className="flex justify-between items-center flex-col sm:flex-row gap-2">
+                        <div className="text-center sm:text-left">
+                            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Produtividade Mestre</h1>
+                            <p className="text-slate-500 text-sm sm:text-base">Seu sistema de produtividade integrado.</p>
+                        </div>
+                        <div className="text-sm shrink-0">
+                            <a href="https://github.com/PedroVic12" target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-600 hover:text-blue-600 transition-colors mr-4">GitHub</a>
+                            <a href="https://www.linkedin.com/in/pedrovictordev" target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-600 hover:text-blue-600 transition-colors">LinkedIn</a>
+                        </div>
+                    </div>
+                </header>
+                <div className="flex flex-col md:flex-row">
+                    <nav className="flex justify-around md:justify-start md:flex-col border-b md:border-b-0 md:border-r border-slate-200 p-2 md:p-3 md:w-48">
+                      {tabs.map(t=>(
+                        <button key={t.id} onClick={()=>setState(s=>({...s,activeTab:t.id}))} className={`flex items-center justify-center md:justify-start text-left w-full px-3 py-2 my-1 rounded-lg transition-colors text-sm font-medium ${state.activeTab === t.id ? "bg-blue-600 text-white shadow-sm" : "hover:bg-slate-200/50 text-slate-600"}`}>
+                          <span className="mr-0 md:mr-3 text-xl">{t.icon}</span>
+                          <span className="hidden md:inline">{t.label}</span>
+                        </button>
+                      ))}
+                    </nav>
+                    <main className="flex-1 bg-slate-100/50 p-2 sm:p-4 min-h-[calc(100vh-150px)]">
+                      {renderContent()}
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
+

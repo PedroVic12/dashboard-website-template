@@ -38,6 +38,7 @@
     <div id="root"></div>
 
     <!-- Script React com JSX (precisa do type="text/babel") -->
+    {% raw %}
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
@@ -329,6 +330,6 @@
         // Renderiza o componente App na div#root
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
+    {% endraw %}
 </body>
 </html>
-
