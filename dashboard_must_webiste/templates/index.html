@@ -114,7 +114,7 @@
 
             // --- CARREGAMENTO DOS DADOS (EFEITO) ---
             useEffect(() => {
-                fetch('/static/must_tables_PDF_notes_merged.json')
+                fetch('must_tables_PDF_notes_merged.json')
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`Erro na rede: ${response.statusText}`);
@@ -136,46 +136,39 @@
 
             // --- PROCESSAMENTO DOS DADOS PARA ADICIONAR CAMINHOS DE ARQUIVO ---
             const processedData = useMemo(() => {
-                // Se não houver dados, retorna um array vazio
                 if (!data || data.length === 0) {
                     return [];
                 }
 
-                // Mapeia os dados para adicionar o caminho do arquivo
-                return data.map((item, index) => {
-                    let filePath = 'caminho_padrao.pdf'; // Um valor padrão
-                    const empresa = item.EMPRESA;
+                // Mapeamento centralizado de empresas para links para maior clareza e manutenção
+                const companyLinks = {
+                    'SUL SUDESTE': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN',
+                    'ELETROPAULO': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho',
+                    'PIRATININGA': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9',
+                    'NEOENERGIA ELEKTRO': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/Eet4gEXFfDNEoPMejiLnMaQBVW1ubN1TxOIvMtLY0yUfPA?e=WruSdk',
+                    'JAGUARI': 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2',
+                    'CPFL PAULISTA': 'https://onsbr-my.sharepoint.com/:b:/g/personal/insira_o_link_correto_aqui'
+                };
 
-                    // *** É AQUI QUE VOCÊ PODE ADICIONAR SUA LÓGICA DE 'IF/ELSE' ***
-                    // Exemplo:
-                    if (empresa === 'SUL E SUDESTE') {
-                         filePath = 'https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EbWWq1r7MnxPvOejycbr82cB5a_rN_PCsDMDjp9r3bF3Ng?e=C7dxKN';
-                     } else if (empresa === 'ELETROPAULO') {
-                         filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=kzrFho`;
-                     } else if (empresa == "PIRATININGA") {
-                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EZGF1uzc1opGujAlp1fwNqcBoLnXsAt532XFPbNrNCwEvQ?e=nEOCn9`;
-                     } else if (empresa == "NEOENERGIA ELEKTRO") {
-                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/Eet4gEXFfDNEoPMejiLnMaQBVW1ubN1TxOIvMtLY0yUfPA?e=WruSdk`;
-                     } else if (empresa == "ELETROPAULO") {
-                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2`;
-                     } else if (empresa == "JAGUARI") {
-                            filePath = `https://onsbr-my.sharepoint.com/:b:/g/personal/pedrovictor_veras_ons_org_br/EXzdo_ClziVDrnOHTiGzoysBdqgci92tpuKYN2xKIjPQvw?e=b2yXV2`;
-                     } 
-                     else {
-                         // Lógica padrão que você criou
-                         filePath = `MUST_${empresa.replace(/\s+/g, "_")}_${index}.pdf`;
-                     }
+                return data.map((item) => {
+                    // Normaliza o nome da empresa para a busca (remove espaços extras e converte para maiúsculas)
+                    const normalizedEmpresa = item.EMPRESA ? String(item.EMPRESA).trim().toUpperCase() : '';
+                    
+                    // Atribui o link correspondente ou '#' se não encontrado
+                    const filePath = companyLinks[normalizedEmpresa] || '#';
+                    
+                    // Adiciona um log no console para verificação
+                    console.log(`Empresa: "${item.EMPRESA}" (Normalizado: "${normalizedEmpresa}") -> Link atribuído: ${filePath}`);
 
-
-                    // Retorna o item original com a nova propriedade 'arquivoReferencia'
                     return { ...item, arquivoReferencia: filePath };
                 });
-            }, [data]); // Este cálculo é refeito apenas quando os 'dados' originais mudam
+            }, [data]);
+
 
             // --- CÁLCULOS E FILTRAGEM (USANDO DADOS PROCESSADOS) ---
             const kpis = useMemo(() => {
                 if (!processedData.length) return { uniqueCompanies: 0, totalPoints: 0, pointsWithRemarks: 0, percentageWithRemarks: '0.0' };
-                const uniqueCompanies = new Set(processedData.map(item => item.EMPRESA)).size;
+                const uniqueCompanies = new Set(processedData.map(item => item.EMPRESA).filter(Boolean)).size;
                 const totalPoints = processedData.length;
                 const pointsWithRemarks = processedData.filter(item => item.Anotacao && String(item.Anotacao).trim() !== 'nan').length;
                 const percentageWithRemarks = totalPoints > 0 ? ((pointsWithRemarks / totalPoints) * 100).toFixed(1) : '0.0';
@@ -185,6 +178,7 @@
             const companyAnalysis = useMemo(() => {
                 const companyData = {};
                 processedData.forEach(item => {
+                    if (!item.EMPRESA) return; 
                     if (!companyData[item.EMPRESA]) {
                         companyData[item.EMPRESA] = { total: 0, withRemarks: 0 };
                     }
@@ -197,7 +191,7 @@
             }, [processedData]);
 
             const uniqueCompaniesList = useMemo(() =>
-                [...new Set(processedData.map(item => item.EMPRESA))].sort()
+                [...new Set(processedData.map(item => item.EMPRESA).filter(Boolean))].sort()
             , [processedData]);
 
             const filteredData = useMemo(() => {
@@ -206,19 +200,18 @@
                     const searchTerm = filters.search.toLowerCase();
                     const searchMatch = !searchTerm ||
                         String(item['Cód ONS']).toLowerCase().includes(searchTerm) ||
-                        String(item.Instalação).toLowerCase().includes(searchTerm) ||
                         (item.Anotacao && String(item.Anotacao).toLowerCase().includes(searchTerm));
                     return companyMatch && searchMatch;
                 });
             }, [processedData, filters]);
 
-            // --- MANIPULADORES DE EVENTOS ---
+            // --- MANIPULadores de eventos ---
             const handleFilterChange = (e) => {
                 const { name, value } = e.target;
                 setFilters(prev => ({ ...prev, [name]: value }));
             };
 
-            const handleRowClick = (annotation) => {
+            const handleRemarkClick = (annotation) => {
                 if (annotation && String(annotation).trim() !== 'nan') {
                     setModalContent(annotation);
                 }
@@ -226,7 +219,7 @@
 
             // --- RENDERIZAÇÃO CONDICIONAL ---
             if (loading) {
-                return <div className="text-center p-8">Carregando dados...</div>;
+                return <div className="flex justify-center items-center h-screen">Carregando dados...</div>;
             }
             if (error) {
                 return <div className="container mx-auto p-4 md:p-8"><ErrorDisplay error={error} /></div>;
@@ -259,8 +252,8 @@
 
                         <section className="bg-gray-800 p-6 rounded-lg shadow-lg">
                             <h2 className="text-2xl font-bold text-white mb-4">Detalhes dos Pontos de Conexão</h2>
-                            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                                <div className="flex-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div>
                                     <label htmlFor="company-filter" className="block text-sm font-medium text-gray-400 mb-1">Filtrar por Empresa</label>
                                     <select id="company-filter" name="company" value={filters.company} onChange={handleFilterChange}
                                         className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
@@ -270,7 +263,7 @@
                                         ))}
                                     </select>
                                 </div>
-                                <div className="flex-1">
+                                <div>
                                     <label htmlFor="search-input" className="block text-sm font-medium text-gray-400 mb-1">Pesquisar</label>
                                     <input type="text" id="search-input" name="search" value={filters.search} onChange={handleFilterChange}
                                         className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
@@ -294,27 +287,37 @@
                                             const hasRemark = item.Anotacao && String(item.Anotacao).trim() !== 'nan';
                                             return (
                                                 <tr key={`${item['Cód ONS']}-${index}`}
-                                                    className={`bg-gray-800 border-b border-gray-700 hover:bg-gray-700 ${hasRemark ? 'cursor-pointer' : ''}`}
-                                                    onClick={() => handleRowClick(item.Anotacao)}>
+                                                    className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
                                                     <td className="px-6 py-4 font-medium text-white">{item.EMPRESA || ''}</td>
                                                     <td className="px-6 py-4">{item['Cód ONS'] || ''}</td>
                                                     <td className="px-6 py-4">{item['Tensão (kV)'] || ''}</td>
                                                     <td className="px-6 py-4 text-center">
                                                         {hasRemark
-                                                            ? <span className="inline-block px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">Sim</span>
+                                                            ? (
+                                                                <button 
+                                                                    onClick={() => handleRemarkClick(item.Anotacao)}
+                                                                    className="inline-block px-3 py-1 text-xs font-semibold text-yellow-900 bg-yellow-300 rounded-full hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-yellow-500 transition"
+                                                                >
+                                                                    Sim
+                                                                </button>
+                                                            )
                                                             : <span className="inline-block px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-400 rounded-full">Não</span>
                                                         }
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <a href={item.arquivoReferencia} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
-                                                            Abrir arquivo PDF
-                                                        </a>
+                                                        {item.arquivoReferencia && item.arquivoReferencia !== '#' ? (
+                                                            <a href={item.arquivoReferencia} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                                                                Abrir arquivo
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-500">Não aplicável</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );
                                         }) : (
                                             <tr>
-                                                <td colSpan="6" className="text-center py-8 text-gray-400">Nenhum resultado encontrado.</td>
+                                                <td colSpan="5" className="text-center py-8 text-gray-400">Nenhum resultado encontrado.</td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -333,3 +336,4 @@
     {% endraw %}
 </body>
 </html>
+
