@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Projetos To-Do</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React via CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel para transpilar JSX no navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- SheetJS (xlsx) para exportação para Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/sheetjs-style@0.15.8/xlsx.full.min.js"></script>
+
+    <style>
+        /* Estilo customizado para a barra de rolagem e fontes */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // --- MODELOS E SERVIÇOS (Lógica Orientada a Objetos) ---
+
+        /**
+         * Classe para representar uma Tarefa.
+         */
+        class Task {
+            constructor(id, text, categoryId, completed = false, createdAt = new Date()) {
+                this.id = id;
+                this.text = text;
+                this.categoryId = categoryId;
+                this.completed = completed;
+                this.createdAt = createdAt;
+            }
+        }
+
+        /**
+         * Classe para representar uma Categoria.
+         */
+        class Category {
+            constructor(id, name) {
+                this.id = id;
+                this.name = name;
+            }
+        }
+
+        /**
+         * Serviço para abstrair a interação com o localStorage.
+         * Isso adere ao Princípio da Responsabilidade Única (SOLID).
+         */
+        const LocalStorageService = {
+            // Usa uma "hash key" como prefixo para evitar colisões
+            getKey: (storageKey, type) => `todoApp_${storageKey}_${type}`,
+
+            getData: (storageKey, type) => {
+                try {
+                    const data = localStorage.getItem(LocalStorageService.getKey(storageKey, type));
+                    return data ? JSON.parse(data) : [];
+                } catch (error) {
+                    console.error(`Erro ao buscar ${type} do localStorage:`, error);
+                    return [];
+                }
+            },
+
+            saveData: (storageKey, type, data) => {
+                try {
+                    localStorage.setItem(LocalStorageService.getKey(storageKey, type), JSON.stringify(data));
+                } catch (error) {
+                    console.error(`Erro ao salvar ${type} no localStorage:`, error);
+                }
+            }
+        };
+
+        // --- ÍCONES (Componentes SVG para não ter dependências externas de ícones) ---
+        const PlusIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        );
+        const EditIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        );
+        const TrashIcon = () => (
+             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        );
+        const DownloadIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        );
+
+        // --- COMPONENTES DA UI ---
+
+        /**
+         * Componente Modal para Adicionar/Editar Tarefas e Categorias.
+         */
+        function Modal({ isOpen, onClose, title, children }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+                        <div className="p-4 border-b">
+                            <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                        </div>
+                        <div className="p-4">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        /**
+         * O coração da aplicação: O To-Do List genérico e reutilizável.
+         * @param {string} title - O título para o AppBar.
+         * @param {string} primaryColor - A cor de destaque (classe Tailwind, ex: 'bg-blue-600').
+         * @param {string} storageKey - Chave única para o localStorage desta instância.
+         */
+        function TodoApp({ title, primaryColor, storageKey }) {
+            const [tasks, setTasks] = useState([]);
+            const [categories, setCategories] = useState([]);
+            const [selectedCategoryId, setSelectedCategoryId] = useState('all');
+            
+            const [isTaskModalOpen, setTaskModalOpen] = useState(false);
+            const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
+            
+            const [taskText, setTaskText] = useState('');
+            const [taskCategory, setTaskCategory] = useState('');
+            const [editingTask, setEditingTask] = useState(null);
+            
+            const [newCategoryName, setNewCategoryName] = useState('');
+
+            // Carrega os dados do localStorage ao iniciar
+            useEffect(() => {
+                setTasks(LocalStorageService.getData(storageKey, 'tasks'));
+                const storedCategories = LocalStorageService.getData(storageKey, 'categories');
+                if (storedCategories.length === 0) {
+                    const defaultCategories = [new Category('1', 'Trabalho'), new Category('2', 'Pessoal')];
+                    setCategories(defaultCategories);
+                    LocalStorageService.saveData(storageKey, 'categories', defaultCategories);
+                } else {
+                    setCategories(storedCategories);
+                }
+            }, [storageKey]);
+
+            // Salva as tarefas no localStorage sempre que elas mudam
+            useEffect(() => {
+                LocalStorageService.saveData(storageKey, 'tasks', tasks);
+            }, [tasks, storageKey]);
+
+            // Salva as categorias no localStorage sempre que elas mudam
+            useEffect(() => {
+                 LocalStorageService.saveData(storageKey, 'categories', categories);
+            }, [categories, storageKey]);
+
+            const openAddTaskModal = () => {
+                setEditingTask(null);
+                setTaskText('');
+                setTaskCategory(categories[0]?.id || '');
+                setTaskModalOpen(true);
+            };
+
+            const openEditTaskModal = (task) => {
+                setEditingTask(task);
+                setTaskText(task.text);
+                setTaskCategory(task.categoryId);
+                setTaskModalOpen(true);
+            };
+
+            const handleTaskSubmit = (e) => {
+                e.preventDefault();
+                if (!taskText.trim() || !taskCategory) return;
+
+                if (editingTask) {
+                    // Atualiza a tarefa
+                    setTasks(tasks.map(t => 
+                        t.id === editingTask.id ? { ...t, text: taskText, categoryId: taskCategory } : t
+                    ));
+                } else {
+                    // Adiciona nova tarefa
+                    const newTask = new Task(crypto.randomUUID(), taskText, taskCategory);
+                    setTasks([...tasks, newTask]);
+                }
+                
+                setTaskModalOpen(false);
+                setTaskText('');
+            };
+
+            const toggleTaskCompletion = (taskId) => {
+                setTasks(tasks.map(t => 
+                    t.id === taskId ? { ...t, completed: !t.completed } : t
+                ));
+            };
+
+            const deleteTask = (taskId) => {
+                if(window.confirm('Tem certeza que deseja excluir esta tarefa?')){
+                    setTasks(tasks.filter(t => t.id !== taskId));
+                }
+            };
+
+            const handleCategorySubmit = (e) => {
+                e.preventDefault();
+                if (!newCategoryName.trim()) return;
+                
+                const newCategory = new Category(crypto.randomUUID(), newCategoryName);
+                setCategories([...categories, newCategory]);
+                setNewCategoryName('');
+                setCategoryModalOpen(false);
+            };
+            
+            const getCategoryNameById = useCallback((categoryId) => {
+                const category = categories.find(c => c.id === categoryId);
+                return category ? category.name : 'Sem Categoria';
+            }, [categories]);
+
+            const filteredTasks = selectedCategoryId === 'all'
+                ? tasks
+                : tasks.filter(task => task.categoryId === selectedCategoryId);
+
+            const handleExportToExcel = () => {
+                const dataToExport = filteredTasks.map(task => ({
+                    'Tarefa': task.text,
+                    'Categoria': getCategoryNameById(task.categoryId),
+                    'Status': task.completed ? 'Concluída' : 'Pendente',
+                    'Criada em': new Date(task.createdAt).toLocaleString('pt-BR')
+                }));
+
+                const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Tarefas");
+                
+                // Estilização (opcional, mas elegante)
+                const wscols = [ {wch: 40}, {wch: 20}, {wch: 15}, {wch: 25} ];
+                worksheet['!cols'] = wscols;
+
+                XLSX.writeFile(workbook, `tarefas_${storageKey}.xlsx`);
+            };
+
+            return (
+                <div className="h-full flex flex-col bg-gray-50">
+                    {/* AppBar */}
+                    <header className={`flex-shrink-0 ${primaryColor} text-white shadow-md`}>
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                            <h1 className="text-2xl font-bold">{title}</h1>
+                            <button onClick={openAddTaskModal} className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                                <PlusIcon />
+                                <span className="hidden sm:inline">Nova Tarefa</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Conteúdo Principal */}
+                    <main className="flex-grow p-4 md:p-6 overflow-y-auto">
+                        <div className="max-w-7xl mx-auto">
+                            {/* Filtros de Categoria e Ações */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium text-gray-600 mr-2">Filtrar:</span>
+                                    <button onClick={() => setSelectedCategoryId('all')} className={`px-3 py-1 text-sm rounded-full transition ${selectedCategoryId === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>Todas</button>
+                                    {categories.map(cat => (
+                                        <button key={cat.id} onClick={() => setSelectedCategoryId(cat.id)} className={`px-3 py-1 text-sm rounded-full transition ${selectedCategoryId === cat.id ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{cat.name}</button>
+                                    ))}
+                                    <button onClick={() => setCategoryModalOpen(true)} className="px-3 py-1 text-sm rounded-full transition bg-green-100 text-green-800 hover:bg-green-200">+</button>
+                                </div>
+                                <button onClick={handleExportToExcel} className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                                    <DownloadIcon />
+                                    Exportar para Excel
+                                </button>
+                            </div>
+
+                            {/* Tabela de Tarefas */}
+                            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="p-4 w-12"></th>
+                                                <th className="p-4 text-sm font-semibold text-gray-600">Tarefa</th>
+                                                <th className="p-4 text-sm font-semibold text-gray-600 hidden md:table-cell">Categoria</th>
+                                                <th className="p-4 text-sm font-semibold text-gray-600 hidden sm:table-cell">Data</th>
+                                                <th className="p-4 text-sm font-semibold text-gray-600 text-right">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredTasks.length > 0 ? (
+                                                filteredTasks.map(task => (
+                                                <tr key={task.id} className={`border-t ${task.completed ? 'bg-gray-50 text-gray-400' : ''}`}>
+                                                    <td className="p-4">
+                                                        <input type="checkbox" checked={task.completed} onChange={() => toggleTaskCompletion(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                                    </td>
+                                                    <td className={`p-4 font-medium ${task.completed ? 'line-through' : 'text-gray-800'}`}>
+                                                        {task.text}
+                                                    </td>
+                                                    <td className="p-4 text-sm text-gray-500 hidden md:table-cell">
+                                                        <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded-full">{getCategoryNameById(task.categoryId)}</span>
+                                                    </td>
+                                                    <td className="p-4 text-sm text-gray-500 hidden sm:table-cell">
+                                                        {new Date(task.createdAt).toLocaleDateString('pt-BR')}
+                                                    </td>
+                                                    <td className="p-4 text-right">
+                                                        <div className="flex justify-end items-center gap-3">
+                                                            <button onClick={() => openEditTaskModal(task)} className="text-blue-500 hover:text-blue-700 transition-colors"><EditIcon /></button>
+                                                            <button onClick={() => deleteTask(task.id)} className="text-red-500 hover:text-red-700 transition-colors"><TrashIcon /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="5" className="text-center p-8 text-gray-500">
+                                                        Nenhuma tarefa encontrada. Que tal adicionar uma?
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* Modal de Tarefas */}
+                    <Modal isOpen={isTaskModalOpen} onClose={() => setTaskModalOpen(false)} title={editingTask ? 'Editar Tarefa' : 'Adicionar Nova Tarefa'}>
+                        <form onSubmit={handleTaskSubmit}>
+                            <div className="mb-4">
+                                <label htmlFor="taskText" className="block text-sm font-medium text-gray-700 mb-1">Descrição da Tarefa</label>
+                                <input type="text" id="taskText" value={taskText} onChange={e => setTaskText(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div className="mb-6">
+                                <label htmlFor="taskCategory" className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                                <select id="taskCategory" value={taskCategory} onChange={e => setTaskCategory(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                                    <option value="" disabled>Selecione uma categoria</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setTaskModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                                <button type="submit" className={`px-4 py-2 ${primaryColor} text-white rounded-md hover:opacity-90`}>
+                                    {editingTask ? 'Salvar Alterações' : 'Adicionar Tarefa'}
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
+
+                    {/* Modal de Categoria */}
+                    <Modal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Adicionar Nova Categoria">
+                        <form onSubmit={handleCategorySubmit}>
+                             <div className="mb-6">
+                                <label htmlFor="newCategoryName" className="block text-sm font-medium text-gray-700 mb-1">Nome da Categoria</label>
+                                <input type="text" id="newCategoryName" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setCategoryModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Salvar Categoria</button>
+                            </div>
+                        </form>
+                    </Modal>
+                </div>
+            );
+        }
+        
+        /**
+         * Componente Dashboard para navegação.
+         */
+        function Dashboard({ setCurrentPage }) {
+            const frameworks = [
+                { id: 'VITE_TAILWIND', name: 'Vite + Tailwind', desc: 'Performance e estilização moderna.', color: 'bg-blue-600' },
+                { id: 'VITE_BOOTSTRAP', name: 'Vite + Bootstrap', desc: 'Rapidez com um framework robusto.', color: 'bg-purple-600' },
+                { id: 'NEXT_TAILWIND', name: 'Next.js + Tailwind', desc: 'SSR/SSG com estilização utilitária.', color: 'bg-gray-800' },
+                { id: 'NEXT_MUI', name: 'Next.js + Material UI', desc: 'Componentes React prontos para produção.', color: 'bg-sky-600' }
+            ];
+
+            return (
+                <div className="p-6 md:p-8 bg-white h-full">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Dashboard de Projetos</h1>
+                    <p className="text-gray-600 mb-8">Selecione um template de To-Do List para começar.</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {frameworks.map(fw => (
+                            <div key={fw.id} onClick={() => setCurrentPage(fw.id)} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-xl hover:border-blue-500 transition-all cursor-pointer transform hover:-translate-y-1">
+                                <div className={`w-12 h-12 ${fw.color} rounded-lg mb-4`}></div>
+                                <h2 className="text-xl font-semibold text-gray-800 mb-2">{fw.name}</h2>
+                                <p className="text-gray-500">{fw.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        /**
+         * Componente Sidebar para navegação entre as "páginas".
+         */
+        function Sidebar({ currentPage, setCurrentPage }) {
+            const navItems = [
+                { id: 'DASHBOARD', name: 'Dashboard' },
+                { id: 'VITE_TAILWIND', name: 'Vite + Tailwind' },
+                { id: 'VITE_BOOTSTRAP', name: 'Vite + Bootstrap' },
+                { id: 'NEXT_TAILWIND', name: 'Next.js + Tailwind' },
+                { id: 'NEXT_MUI', name: 'Next.js + Material UI' }
+            ];
+
+            return (
+                <nav className="w-64 bg-white shadow-lg flex-shrink-0 flex flex-col h-screen">
+                    <div className="p-4 border-b h-16 flex items-center">
+                        <h2 className="text-xl font-bold text-gray-800">Projetos</h2>
+                    </div>
+                    <ul className="flex-grow p-2">
+                        {navItems.map(item => (
+                            <li key={item.id}>
+                                <a
+                                    href="#"
+                                    onClick={(e) => { e.preventDefault(); setCurrentPage(item.id); }}
+                                    className={`block w-full text-left px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                                        currentPage === item.id 
+                                        ? 'bg-blue-50 text-blue-600' 
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                    }`}
+                                >
+                                    {item.name}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            );
+        }
+
+        /**
+         * Componente principal que gerencia o roteamento.
+         */
+        function App() {
+            const [currentPage, setCurrentPage] = useState('DASHBOARD');
+
+            const renderPage = () => {
+                switch (currentPage) {
+                    case 'DASHBOARD':
+                        return <Dashboard setCurrentPage={setCurrentPage} />;
+                    case 'VITE_TAILWIND':
+                        return <TodoApp title="To-Do: Vite + Tailwind" primaryColor="bg-blue-600" storageKey="vite_tailwind" />;
+                    case 'VITE_BOOTSTRAP':
+                        return <TodoApp title="To-Do: Vite + Bootstrap" primaryColor="bg-purple-600" storageKey="vite_bootstrap" />;
+                    case 'NEXT_TAILWIND':
+                        return <TodoApp title="To-Do: Next.js + Tailwind" primaryColor="bg-gray-800" storageKey="next_tailwind" />;
+                    case 'NEXT_MUI':
+                        return <TodoApp title="To-Do: Next.js + Material UI" primaryColor="bg-sky-600" storageKey="next_mui" />;
+                    default:
+                        return <Dashboard setCurrentPage={setCurrentPage} />;
+                }
+            };
+            
+            return (
+                <div className="flex h-screen bg-gray-100">
+                    <div className="hidden lg:block">
+                      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+                    </div>
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Aqui poderia ir um header para mobile com um menu hamburguer */}
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200">
+                            {renderPage()}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
