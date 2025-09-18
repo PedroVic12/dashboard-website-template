@@ -1,3 +1,6 @@
 flask
 gunicorn
-
+pyodbc
+pandas
+openpyxl
+python-dotenv

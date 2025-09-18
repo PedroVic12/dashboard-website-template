@@ -45,6 +45,16 @@
 
         // --- COMPONENTES REUTILIZÁVEIS ---
 
+        function buscarDados(params) {
+            fetch('/api/data')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Dados recebidos do banco:', data);
+                // Aqui você pode usar os dados para popular seus gráficos e tabelas
+            })
+            .catch(error => console.error('Erro ao buscar dados:', error));
+        }
+
         const KpiCard = ({ title, value, unit = '' }) => (
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-gray-400 text-sm font-medium">{title}</h3>

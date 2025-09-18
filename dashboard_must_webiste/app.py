@@ -1,5 +1,8 @@
 from flask import Flask, render_template, send_from_directory
 import os
+from db.get_db_access_connection import get_db_connection
+import pyodbc
+from flask import jsonify
 
 
 #gunicorn --bind 0.0.0.0:8080 app:app
@@ -34,6 +37,7 @@ class PikachuServer:
         Define todas as rotas da aplicação web.
         """
 
+
         @self.app.route('/')
         def index():
             """
@@ -56,6 +60,41 @@ class PikachuServer:
             """
             # Envia arquivos como 'must_tables_PDF_notes_merged.json' para o cliente.
             return send_from_directory(self.app.static_folder, filename)
+        
+
+        @self.app.route('/api/data')
+        def get_data():
+            """
+            Rota de API que busca todos os dados da tabela no SQL Server
+            e os retorna em formato JSON.
+            """
+            conn = None
+            try:
+                conn = get_db_connection()
+                if not conn:
+                    return jsonify({"error": "Falha na conexão com o banco de dados"}), 500
+                
+                cursor = conn.cursor()
+                # O nome da tabela deve ser o mesmo definido no script de importação
+                cursor.execute("SELECT * FROM MustTablesPdfNotes") 
+                
+                # Obtém os nomes das colunas a partir do cursor
+                columns = [column[0] for column in cursor.description]
+                
+                # Cria uma lista de dicionários para facilitar a conversão para JSON
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                
+                return jsonify(rows)
+
+            except pyodbc.Error as e:
+                print(f"Erro ao buscar dados: {e}")
+                return jsonify({"error": "Ocorreu um erro ao consultar o banco de dados"}), 500
+            except Exception as e:
+                print(f"Erro inesperado: {e}")
+                return jsonify({"error": "Ocorreu um erro interno no servidor"}), 500
+            finally:
+                if conn:
+                    conn.close()
 
     def run_server(self, host='0.0.0.0', port=8080):
         """
@@ -65,13 +104,13 @@ class PikachuServer:
                         acessível na sua rede local.
             port (int): A porta que o servidor irá escutar.
         """
-        print(f" * Servidor Pikachu rodando em http://{host}:{port}")
+        print(f" * Servidor Flask Pikachu rodando em http://{host}:{port}")
         print(f"\n* Acesse http://127.0.0.1:{port} no seu navegador para acessar o frontend")
         self.app.run(host=host, port=port, debug=True)
 
-# Ponto de entrada da aplicação
+
+
 if __name__ == '__main__':
-    # --- INSTRUÇÕES PARA RODAR O SERVIDOR ---
     # 1. Instale o Flask:
     #    pip install Flask
     #
@@ -81,8 +120,6 @@ if __name__ == '__main__':
     #
     # 3. Execute este script no seu terminal:
     #    python app.py
-    #
-    # 4. Abra o seu navegador e acesse o endereço: http://127.0.0.1:8080
 
     # Cria uma instância do servidor e o inicia.
     server = PikachuServer()
