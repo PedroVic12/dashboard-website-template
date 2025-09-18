@@ -20,15 +20,6 @@ from pathlib import Path
 import threading
 from queue import Queue, Empty
 
-# 🔧 CORREÇÃO: Importa configuração de locale pt-BR centralizada
-from controle_acoes.core.encoding_config import configurar_locale_pt_br
-
-# 🔧 CORREÇÃO CRÍTICA: Importa gerenciador ID_espelho
-from controle_acoes.core.id_espelho_manager import id_espelho_manager
-
-# 🔧 CORREÇÃO CRÍTICA: Importa função utilitária central para ID_espelho
-from controle_acoes.services.access_utils import upsert_with_mirror_id, validate_id_espelho_integrity
-
 try:
     import pyodbc
     ACCESS_AVAILABLE = True
