@@ -1,0 +1,39 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>SQLite in Browser</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+    </head>
+    <body>
+        <div id="data-container"></div>
+
+        <script>
+            async function loadAndQuerySQLite() {
+                const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
+                const db = new SQL.Database(); // Or load from a file: const db = new SQL.Database(new Uint8Array(await fetch('your_db.sqlite').then(res => res.arrayBuffer())));
+
+                // Create a table and insert data (for demonstration)
+                db.run("CREATE TABLE test (id INT, name TEXT);");
+                db.run("INSERT INTO test VALUES (?,?), (?,?)", [1, 'Alice', 2, 'Bob']);
+
+                const res = db.exec("SELECT * FROM test");
+                const data = res[0].values.map(row => ({ id: row[0], name: row[1] }));
+
+                displayData(data);
+                db.close();
+            }
+
+            function displayData(data) {
+                const container = document.getElementById('data-container');
+                container.innerHTML = '';
+                data.forEach(item => {
+                    const p = document.createElement('p');
+                    p.textContent = `ID: ${item.id}, Name: ${item.name}`;
+                    container.appendChild(p);
+                });
+            }
+
+            loadAndQuerySQLite();
+        </script>
+    </body>
+    </html>
