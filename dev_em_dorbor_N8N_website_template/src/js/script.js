@@ -8,6 +8,11 @@ btn.addEventListener("click", function(){
 })
 
 
+//! https://www.youtube.com/live/sk14VhpdmE0?t=4001s
+
+//!  https://prompt-library-devemdobro.replit.app/
+
+
 // Objetivo:
 // Enviar um texto de um formulário para uma API do n8n e exibir o resultado o código html, css e colocar a animação no fundo da tela do site.
 
@@ -40,7 +45,6 @@ document.addEventListener("DOMContentLoaded", function () {
     
     
 
-  
+  }); 
 
-}); 
-
+//! Conexao com o n8n deve ser feita aqui
