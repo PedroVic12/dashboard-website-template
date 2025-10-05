@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web site Template</title>
+
+    <!-- Incluindo Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fontes do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="stylesheet" href="src/css/estilos.css">
+</head>
+<body>
+
+    <header class="header">
+        <h1>Fundo mágico</h1>
+        <p>Transforme suas ideias em fundos incríves! </p>
+    </header>
+
+    <!-- === Container Dev em Dobro === -->
+    <main class="container">
+        <section class="card">
+            <h2 class="card-header">Descreva o que você imagina e veja a magia acontecer no seu website.</h2>
+                <!-- <p class="subtittle">Crie fundos incríveis com IA generativa.Descreva o que você imagina e veja a magia acontecer no seu website.</p> -->
+                            
+                <form id="magic-form" class="space-y-4">
+                    <input
+                    type="text"
+                    id="description"
+                    placeholder="Descreva o fundo que você deseja"
+                    required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+
+                    <textarea
+                    id="details"
+                    rows="5"
+                    placeholder="Exemplo: Um gradiente azul suave que vai do azul claro para o azul escuro"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    ></textarea>
+
+                    <button
+                    type="submit"
+                    id="generate-btn"
+                    class="btn-magic w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition"
+                    >
+                    Gerar Background Mágico!
+                    </button>
+                </form>
+        </section>
+
+        <section class="fundo-card card">
+            <div id="preview" class="preview-card">
+                <!-- O fundo gerado será exibido aqui -->   
+            </div>
+        </section>
+
+        <section id="code-output" class="code-grid" >
+
+            <div class="card code-card">
+                <h3>Código CSS Gerado:</h3>
+                <pre id="css-code" class="code-block">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque culpa, aspernatur quas iste corrupti recusandae nesciunt! Est corporis ex corrupti consectetur nisi? Voluptate itaque omnis, pariatur in rem officiis facilis.</pre>
+            </div>
+
+            <div class="card code-card">
+                <h3>Código HTML gerado:</h3>
+                <pre id="html-code">Lorem ipsum dolor sit amet consectetur adipisicing elit. Blanditiis officiis necessitatibus suscipit! Itaque sint mollitia, sunt, facilis ullam repellendus eligendi ut molestiae autem nobis fugit perferendis commodi eos, tenetur dolor!</pre>
+            </div>
+
+        </section>
+
+    
+
+    </main>
+
+    <!-- === PLANOS DE ASSINATURA === -->
+    <section class="w-full max-w-6xl mx-auto">
+      <header class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
+          Faça upgrade do seu plano
+        </h1>
+
+        <!-- Seletor de tipo de plano -->
+        <div class="inline-flex items-center bg-gray-200 rounded-full p-1 plan-toggle">
+          <button id="personal-btn" class="px-6 py-1.5 rounded-full text-sm font-semibold transition-colors duration-300 active">
+            Personal
+          </button>
+          <button id="business-btn" class="px-6 py-1.5 rounded-full text-sm font-semibold text-gray-600 transition-colors duration-300">
+            Business
+          </button>
+        </div>
+      </header>
+
+      <!-- GRID DE PLANOS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <!-- === PLANO GRÁTIS === -->
+        <article class="bg-white rounded-2xl p-8 border border-gray-200 flex flex-col">
+          <h2 class="text-2xl font-semibold text-gray-900">Grátis</h2>
+          <div class="mt-4">
+            <span id="price-free" class="text-5xl font-bold text-gray-900">$0</span>
+            <span class="text-gray-500">USD / mês</span>
+          </div>
+          <p class="mt-2 text-gray-600">Inteligência para tarefas do dia a dia</p>
+          <button class="w-full mt-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
+            Seu plano atual
+          </button>
+
+          <ul class="mt-8 space-y-4 text-gray-600 flex-grow">
+            <li>✅ Acesso ao GPT-5</li>
+            <li>✅ Carregamento de arquivos limitado</li>
+            <li>✅ Geração de imagens mais lenta e limitada</li>
+            <li>✅ Memória e contexto limitados</li>
+            <li>✅ Investigação limitada</li>
+          </ul>
+        </article>
+
+        <!-- === PLANO PLUS === -->
+        <article class="bg-white rounded-2xl p-8 border-2 popular-card flex flex-col relative">
+          <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-semibold text-gray-900">Plus</h2>
+            <span class="popular-badge bg-violet-600 text-white px-3 py-1 text-xs rounded-full font-semibold">POPULAR</span>
+          </div>
+
+          <div class="mt-4">
+            <span id="price-plus" class="text-5xl font-bold text-gray-900">$20</span>
+            <span class="text-gray-500">USD / mês</span>
+          </div>
+          <p class="mt-2 text-gray-600">Mais acesso à inteligência avançada</p>
+          <button class="w-full mt-6 py-3 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-colors">
+            Assinar Plus
+          </button>
+
+          <ul class="mt-8 space-y-4 text-gray-600 flex-grow">
+            <li>✅ GPT-5 com reflexão avançada</li>
+            <li>✅ Mais mensagens e carregamentos</li>
+            <li>✅ Criação de imagens mais rápida</li>
+            <li>✅ Mais memória e contexto</li>
+            <li>✅ Investigações e modo agente</li>
+            <li>✅ Projetos e GPTs personalizados</li>
+            <li>✅ Geração de vídeos com o Sora</li>
+            <li>✅ Agente Codex</li>
+          </ul>
+        </article>
+
+        <!-- === PLANO PRO === -->
+        <article class="bg-white rounded-2xl p-8 border border-gray-200 flex flex-col">
+          <h2 class="text-2xl font-semibold text-gray-900">Pro</h2>
+          <div class="mt-4">
+            <span id="price-pro" class="text-5xl font-bold text-gray-900">$200</span>
+            <span class="text-gray-500">USD / mês</span>
+          </div>
+          <p class="mt-2 text-gray-600">Acesso completo ao melhor do ChatGPT</p>
+          <button class="w-full mt-6 py-3 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 transition-colors">
+            Assinar Pro
+          </button>
+
+          <ul class="mt-8 space-y-4 text-gray-600 flex-grow">
+            <li>✅ GPT-5 com reflexão Pro</li>
+            <li>✅ Mensagens ilimitadas</li>
+            <li>✅ Criação de imagens ilimitada</li>
+            <li>✅ Máximo de memória e contexto</li>
+            <li>✅ Modo agente completo</li>
+            <li>✅ Projetos e GPTs personalizados ampliados</li>
+            <li>✅ Geração de vídeos com Sora</li>
+            <li>✅ Agente Codex ampliado</li>
+            <li>✅ Prévia de novos recursos</li>
+          </ul>
+        </article>
+      </div>
+
+      <footer class="text-center text-xs text-gray-500 mt-10 max-w-2xl mx-auto">
+        <p>
+          Precisa de ajuda com uma cobrança?
+          <a href="#" class="text-violet-600 underline">Saiba mais</a>
+        </p>
+      </footer>
+    </section>
+
+
+    <script src="src/script.js"></script>
+     
+</body>
+</html>
