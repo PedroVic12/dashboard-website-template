@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .magic-background {
+            text-align: center  ; /* Centraliza o texto horizontalmente */
+  display: flex; /* Usa Flexbox para centralizar o conteúdo */
+  width: 100%;
+  height: 100vh; /* Garante que o fundo ocupe toda a altura da janela de visualização */
+  margin: 0;
+  padding: 0;
+  /* Gradiente azul para verde cristalino como ondas do mar */
+  background: linear-gradient(
+    135deg,
+    #000428 0%,    /* Azul oceano profundo (quase preto) */
+    #004e92 30%,    /* Azul oceano médio-profundo */
+    #00a896 60%,    /* Azul/turquesa vibrante e claro (água rasa) */
+    #02c39a 80%,    /* Transição para verde mar */
+    #84e1bc 100%   /* Verde mar claro e fresco (costa) */
+  );
+  background-size: cover; /* Garante que o gradiente cubra toda a área */
+  background-position: center; /* Centraliza o gradiente */
+  background-attachment: fixed; /* Cria um efeito de paralaxe se houver conteúdo rolável na página */
+}
+    </style>
+</head>
+<body>
+    <div class='magic-background'>
+        Olá fundo mágico!
+        gradiente azul para verde cristalino como ondas do mar
+    </div>
+</body>
+</html>
