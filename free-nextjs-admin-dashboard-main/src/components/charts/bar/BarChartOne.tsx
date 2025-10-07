@@ -1,17 +1,51 @@
 "use client";
-import React from "react";
-
+import { RepositoryController } from "@/services/RepositoryController";
+import { Task } from "@/types";
 import { ApexOptions } from "apexcharts";
-
 import dynamic from "next/dynamic";
-// Dynamically import the ReactApexChart component
+import React, { useEffect, useState } from "react";
+
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
+const repositoryController = new RepositoryController();
+
 export default function BarChartOne() {
+  const [series, setSeries] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const tasks = await repositoryController.getTasks();
+      const completedTasksByMonth = new Array(12).fill(0);
+      const pendingTasksByMonth = new Array(12).fill(0);
+
+      tasks.forEach((task: Task) => {
+        const month = new Date(task.date).getMonth();
+        if (task.status === "completed") {
+          completedTasksByMonth[month]++;
+        } else {
+          pendingTasksByMonth[month]++;
+        }
+      });
+
+      setSeries([
+        {
+          name: "Completed Tasks",
+          data: completedTasksByMonth,
+        },
+        {
+          name: "Pending Tasks",
+          data: pendingTasksByMonth,
+        },
+      ]);
+    };
+
+    fetchTasks();
+  }, []);
+
   const options: ApexOptions = {
-    colors: ["#465fff"],
+    colors: ["#34D399", "#FBBF24"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
@@ -89,12 +123,7 @@ export default function BarChartOne() {
       },
     },
   };
-  const series = [
-    {
-      name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
-    },
-  ];
+
   return (
     <div className="max-w-full overflow-x-auto custom-scrollbar">
       <div id="chartOne" className="min-w-[1000px]">
