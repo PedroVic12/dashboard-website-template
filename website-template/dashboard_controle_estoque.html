@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Análise de Estoque de Notas Fiscais</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- React & Babel for JSX -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Custom scrollbar for a better look in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+        body {
+            background-color: #111827; /* bg-gray-900 */
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- MOCK DATA ---
+        // This data simulates a real database for the dashboard.
+        const mockData = {
+            summary: {
+                totalInvoices: 2340,
+                totalValue: 15750000.50,
+                itemsInStock: 8950,
+                lowStockAlerts: 12,
+            },
+            invoicesByStatus: {
+                labels: ['Pagas', 'Pendentes', 'Atrasadas'],
+                values: [1890, 350, 100],
+            },
+            stockValueByCategory: {
+                labels: ['Transformadores', 'Cabos', 'Medidores', 'Isoladores', 'Postes', 'Ferragens'],
+                values: [7500000, 3200000, 1800000, 950000, 1500000, 800000],
+            },
+            itemsReceivedOverTime: {
+                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],
+                values: [1200, 1350, 1100, 1400, 1550, 1300, 1600],
+            },
+            topSuppliers: {
+                labels: ['Fornecedor A', 'Fornecedor B', 'Fornecedor C', 'Fornecedor D', 'Fornecedor E'],
+                values: [4200000, 3100000, 2500000, 1800000, 1100000],
+            },
+            stockByWarehouse: {
+                labels: ['Almox. Central', 'Almox. Leste', 'Almox. Oeste'],
+                values: [55, 30, 15],
+            },
+            avgCostByCategory: {
+                labels: ['Transformadores', 'Cabos', 'Medidores', 'Isoladores', 'Postes'],
+                values: [15000, 50, 350, 25, 2500],
+            },
+            stockTurnover: {
+                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],
+                values: [2.5, 2.8, 2.6, 3.0, 2.9, 3.1, 3.3],
+            },
+            recentInvoicesTable: [
+                { id: 'NF-008765', supplier: 'Fornecedor A', date: '2024-07-28', value: 'R$ 250.000,00', status: 'Paga' },
+                { id: 'NF-008766', supplier: 'Fornecedor C', date: '2024-07-29', value: 'R$ 75.000,00', status: 'Pendente' },
+                { id: 'NF-008767', supplier: 'Fornecedor B', date: '2024-07-29', value: 'R$ 180.000,00', status: 'Pendente' },
+                { id: 'NF-008768', supplier: 'Fornecedor D', date: '2024-07-30', value: 'R$ 45.000,00', status: 'Paga' },
+                 { id: 'NF-008761', supplier: 'Fornecedor E', date: '2024-06-15', value: 'R$ 90.000,00', status: 'Atrasada' },
+            ],
+            lowStockItemsTable: [
+                { item: 'Cabo de Alumínio 50mm²', code: 'CA-50', current: 50, min: 100 },
+                { item: 'Isolador de Disco Porcelana', code: 'IDP-01', current: 120, min: 200 },
+                { item: 'Medidor Eletrônico Monofásico', code: 'MEM-A2', current: 80, min: 150 },
+                { item: 'Transformador 75kVA', code: 'TR-75', current: 5, min: 10 },
+            ],
+            stockByCategoryTable: [
+                { category: 'Transformadores', items: 350, value: 'R$ 7.500.000,00' },
+                { category: 'Cabos', items: 2500, value: 'R$ 3.200.000,00' },
+                { category: 'Medidores', items: 4500, value: 'R$ 1.800.000,00' },
+                { category: 'Isoladores', items: 1200, value: 'R$ 950.000,00' },
+                { category: 'Postes', items: 400, value: 'R$ 1.500.000,00' },
+            ],
+            suppliersTable: [
+                { name: 'Fornecedor A', contact: 'contato@fornecedora.com', totalBilled: 'R$ 4.200.000,00' },
+                { name: 'Fornecedor B', contact: 'vendas@fornecedorb.net', totalBilled: 'R$ 3.100.000,00' },
+                { name: 'Fornecedor C', contact: 'comercial@fornecedorc.com.br', totalBilled: 'R$ 2.500.000,00' },
+                { name: 'Fornecedor D', contact: 'atendimento@fornecedord.com', totalBilled: 'R$ 1.800.000,00' },
+            ],
+            warehouseInventoryTable: [
+                { warehouse: 'Almox. Central', item: 'Transformador 150kVA', quantity: 25 },
+                { warehouse: 'Almox. Leste', item: 'Cabo de Alumínio 50mm²', quantity: 20 },
+                { warehouse: 'Almox. Oeste', item: 'Medidor Eletrônico Trifásico', quantity: 300 },
+                { warehouse: 'Almox. Central', item: 'Isolador de Disco Porcelana', quantity: 5000 },
+            ],
+            invoiceAgingTable: [
+                { id: 'NF-008766', supplier: 'Fornecedor C', daysOpen: 32 },
+                { id: 'NF-008767', supplier: 'Fornecedor B', daysOpen: 32 },
+                { id: 'NF-008761', supplier: 'Fornecedor E', daysOpen: 48 },
+                { id: 'NF-008755', supplier: 'Fornecedor A', daysOpen: 65 },
+            ],
+            materialUsageLogTable: [
+                { date: '2024-07-25', item: 'Poste de Concreto 12m', quantity: 10, project: 'Expansão Rede Leste' },
+                { date: '2024-07-26', item: 'Cabo de Cobre 35mm²', quantity: 500, project: 'Manutenção Centro' },
+                { date: '2024-07-27', item: 'Transformador 75kVA', quantity: 1, project: 'Novo Cliente Industrial' },
+                { date: '2024-07-28', item: 'Medidor Eletrônico Monofásico', quantity: 50, project: 'Substituição Bairro Sul' },
+            ],
+        };
+
+        // --- Reusable Components ---
+
+        // StatCard Component: Displays a key metric.
+        const StatCard = ({ title, value, icon, format = true }) => {
+            const formattedValue = format && typeof value === 'number'
+                ? value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : value;
+            
+            return (
+                <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex items-center space-x-4">
+                    <div className="bg-gray-700 p-3 rounded-full">
+                        <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={icon}></path></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-400">{title}</p>
+                        <p className="text-2xl font-bold text-white">{value.toLocaleString('pt-BR')}</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Chart Component: A wrapper for Chart.js
+        const ChartComponent = ({ title, type, data, options }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (chartRef.current) {
+                    // Destroy previous chart instance if it exists
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                    const ctx = chartRef.current.getContext('2d');
+                    chartInstance.current = new Chart(ctx, {
+                        type,
+                        data,
+                        options
+                    });
+                }
+
+                // Cleanup function
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [type, data, options]);
+
+            return (
+                <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 h-full flex flex-col">
+                    <h3 className="text-lg font-semibold text-gray-200 mb-4">{title}</h3>
+                    <div className="relative flex-grow">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                </div>
+            );
+        };
+
+        // Table Component: Renders a generic table.
+        const TableComponent = ({ title, headers, data }) => (
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 h-full flex flex-col">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4">{title}</h3>
+                <div className="overflow-x-auto flex-grow">
+                    <table className="w-full text-sm text-left text-gray-400">
+                        <thead className="text-xs text-gray-300 uppercase bg-gray-700">
+                            <tr>
+                                {headers.map((header) => <th key={header} scope="col" className="px-4 py-3">{header}</th>)}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map((row, index) => (
+                                <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/50">
+                                    {Object.values(row).map((cell, cellIndex) => (
+                                        <td key={cellIndex} className={`px-4 py-3 ${cellIndex === 0 ? 'font-medium text-gray-200' : ''}`}>
+                                            {cell}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        // --- Main App Component ---
+        const App = () => {
+            const { summary, ...data } = mockData;
+
+            // Chart Configurations
+            const chartConfigs = {
+                pie: {
+                    type: 'pie',
+                    data: {
+                        labels: data.invoicesByStatus.labels,
+                        datasets: [{
+                            data: data.invoicesByStatus.values,
+                            backgroundColor: ['#4ade80', '#facc15', '#f87171'],
+                            borderColor: '#1f2937',
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#d1d5db' } } } },
+                },
+                bar: {
+                    type: 'bar',
+                    data: {
+                        labels: data.stockValueByCategory.labels,
+                        datasets: [{
+                            label: 'Valor em Estoque (R$)',
+                            data: data.stockValueByCategory.values,
+                            backgroundColor: '#6366f1',
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, scales: { y: { ticks: { color: '#d1d5db' } }, x: { ticks: { color: '#d1d5db' } } }, plugins: { legend: { display: false } } },
+                },
+                line: {
+                    type: 'line',
+                    data: {
+                        labels: data.itemsReceivedOverTime.labels,
+                        datasets: [{
+                            label: 'Itens Recebidos',
+                            data: data.itemsReceivedOverTime.values,
+                            borderColor: '#34d399',
+                            tension: 0.1,
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, scales: { y: { ticks: { color: '#d1d5db' } }, x: { ticks: { color: '#d1d5db' } } }, plugins: { legend: { display: false } } },
+                },
+                horizontalBar: {
+                    type: 'bar',
+                    data: {
+                        labels: data.topSuppliers.labels,
+                        datasets: [{
+                            label: 'Valor Faturado (R$)',
+                            data: data.topSuppliers.values,
+                            backgroundColor: '#a78bfa',
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, indexAxis: 'y', scales: { y: { ticks: { color: '#d1d5db' } }, x: { ticks: { color: '#d1d5db' } } }, plugins: { legend: { display: false } } },
+                },
+                doughnut: {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.stockByWarehouse.labels,
+                        datasets: [{
+                            data: data.stockByWarehouse.values,
+                            backgroundColor: ['#6366f1', '#a78bfa', '#f472b6'],
+                             borderColor: '#1f2937',
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#d1d5db' } } } },
+                },
+                avgCostBar: {
+                    type: 'bar',
+                    data: {
+                        labels: data.avgCostByCategory.labels,
+                        datasets: [{
+                            label: 'Custo Médio por Item (R$)',
+                            data: data.avgCostByCategory.values,
+                            backgroundColor: '#22d3ee',
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, scales: { y: { ticks: { color: '#d1d5db' } }, x: { ticks: { color: '#d1d5db' } } }, plugins: { legend: { display: false } } },
+                },
+                 stockTurnoverLine: {
+                    type: 'line',
+                    data: {
+                        labels: data.stockTurnover.labels,
+                        datasets: [{
+                            label: 'Giro de Estoque',
+                            data: data.stockTurnover.values,
+                            borderColor: '#fb923c',
+                            tension: 0.1,
+                        }],
+                    },
+                    options: { maintainAspectRatio: false, scales: { y: { ticks: { color: '#d1d5db' } }, x: { ticks: { color: '#d1d5db' } } }, plugins: { legend: { display: false } } },
+                },
+            };
+
+            return (
+                <div className="bg-gray-900 text-gray-200 min-h-screen">
+                    <main className="p-4 sm:p-6 lg:p-8">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold text-white">Dashboard de Análise de Estoque</h1>
+                            <p className="text-gray-400 mt-1">Visão geral do controle de notas fiscais e inventário.</p>
+                        </div>
+
+                        {/* Summary Stats */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                           <StatCard title="Total de Notas Fiscais" value={summary.totalInvoices.toLocaleString('pt-BR')} icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                           <StatCard title="Valor Total das Notas (R$)" value={summary.totalValue.toLocaleString('pt-BR', {style:'currency', currency: 'BRL'})} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" />
+                           <StatCard title="Itens em Estoque" value={summary.itemsInStock.toLocaleString('pt-BR')} icon="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                           <StatCard title="Alertas de Estoque Baixo" value={summary.lowStockAlerts.toLocaleString('pt-BR')} icon="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </div>
+
+                        {/* Charts and Tables Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {/* Charts */}
+                            <div className="xl:col-span-1 h-96"><ChartComponent title="Notas Fiscais por Status" {...chartConfigs.pie} /></div>
+                            <div className="xl:col-span-2 h-96"><ChartComponent title="Valor do Estoque por Categoria" {...chartConfigs.bar} /></div>
+                            <div className="xl:col-span-2 h-96"><ChartComponent title="Itens Recebidos por Mês" {...chartConfigs.line} /></div>
+                            <div className="xl:col-span-1 h-96"><ChartComponent title="Distribuição do Estoque" {...chartConfigs.doughnut} /></div>
+                            <div className="xl:col-span-3 h-96"><ChartComponent title="Top 5 Fornecedores por Valor Faturado" {...chartConfigs.horizontalBar} /></div>
+                            <div className="xl:col-span-2 h-96"><ChartComponent title="Custo Médio de Item por Categoria" {...chartConfigs.avgCostBar} /></div>
+                             <div className="xl:col-span-1 h-96"><ChartComponent title="Giro de Estoque Mensal" {...chartConfigs.stockTurnoverLine} /></div>
+
+                            {/* Tables */}
+                            <div className="xl:col-span-2"><TableComponent title="Notas Fiscais Recentes" headers={['ID da Nota', 'Fornecedor', 'Data', 'Valor', 'Status']} data={data.recentInvoicesTable} /></div>
+                            <div className="xl:col-span-1"><TableComponent title="Itens com Estoque Baixo" headers={['Item', 'Código', 'Qtd. Atual', 'Qtd. Mínima']} data={data.lowStockItemsTable} /></div>
+                            <div className="xl:col-span-1"><TableComponent title="Estoque por Categoria" headers={['Categoria', 'Nº de Itens', 'Valor Total']} data={data.stockByCategoryTable} /></div>
+                            <div className="xl:col-span-2"><TableComponent title="Detalhes dos Fornecedores" headers={['Fornecedor', 'Contato', 'Total Faturado']} data={data.suppliersTable} /></div>
+                            <div className="xl:col-span-1"><TableComponent title="Inventário por Almoxarifado" headers={['Almoxarifado', 'Item', 'Quantidade']} data={data.warehouseInventoryTable} /></div>
+                             <div className="xl:col-span-1"><TableComponent title="Notas em Aberto (Aging)" headers={['ID da Nota', 'Fornecedor', 'Dias em Aberto']} data={data.invoiceAgingTable} /></div>
+                            <div className="xl:col-span-3"><TableComponent title="Log de Utilização de Material" headers={['Data', 'Item', 'Qtd. Usada', 'Projeto']} data={data.materialUsageLogTable} /></div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
