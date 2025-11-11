@@ -10,7 +10,6 @@ db_path = os.path.join(
     os.path.dirname(__file__),
     "must_db.sqlite"
 )
-
 # Nome da tabela no banco de dados
 table_name = "must_tables_pdf_notes"
 
