@@ -259,7 +259,7 @@ class DashboardApp:
     def __init__(self):
         st.set_page_config(
             page_title="ONS Inspira - Banco de Talentos",
-            layout="wide",
+            layout="wide"
             #initial_sidebar_state="expanded"
         )
         self.df1, self.df2 = get_results_forms()
