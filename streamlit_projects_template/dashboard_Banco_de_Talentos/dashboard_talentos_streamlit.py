@@ -378,9 +378,9 @@ class FormularyAnalyzer:
                         fig = px.bar(
                             recommended_candidates,
                             x='Nome Completo',
-                            y='Similarity Score',
+                            y='Similaridade',
                             title=f'Similarity Scores dos Candidatos Recomendados para {selected_candidate_str}',
-                            labels={'Nome Completo': 'Candidato', 'Similarity Score': 'Pontuação de Similaridade'}
+                            labels={'Nome Completo': 'Candidato', 'Similaridade': 'Pontuação de Similaridade'}
                         )
                         st.plotly_chart(fig, use_container_width=True)
                         
@@ -505,9 +505,27 @@ class DashboardApp:
         if not self.df1.empty and not self.df2.empty:
             print("✅ DataFrames carregados e passado para o histórico inicial do chatbot!")
 
+    def AppBar(self):
+        st.title("Minha App Bar")
+
+        # Cria três colunas para organizar os botões
+        col1, col2, col3 = st.columns(3)
+
+        # Botão de link para o Google
+        with col1:
+            st.link_button("Site Dashboard Template", "https://www.dashboard-moderno.streamlit.app/")
+
+        # Botão de link para o Streamlit
+        with col2:
+            st.link_button("Documentação Streamlit", "https://docs.streamlit.io/")
+
+        # Botão de link com ícone
+        with col3:
+            st.link_button("Galeria Streamlit", "https://share.streamlit.io/streamlit/demo-app", use_container_width=True, icon="🚀")
 
     def run(self):
         st.markdown(custom_css, unsafe_allow_html=True)
+        self.AppBar()
 
         st.title("Dashboard ONS Inspira 2025")
         st.subheader("Análise de Candidatos para o Banco de talentos ")
