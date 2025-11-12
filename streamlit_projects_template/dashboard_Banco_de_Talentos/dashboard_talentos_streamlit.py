@@ -274,12 +274,13 @@ class DashboardApp:
             st.session_state.messages = initial_history_with_context
         
         self.chatbot = ChatbotComponent()
-        st.markdown(custom_css, unsafe_allow_html=True)
         if not self.df1.empty and not self.df2.empty:
             print("✅ DataFrames carregados e passado para o histórico inicial do chatbot!")
 
 
     def run(self):
+        st.markdown(custom_css, unsafe_allow_html=True)
+
         st.title("Dashboard ONS Inspira - Análise de Candidatos para o Banco de talentos ")
         st.markdown("Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.")
 
