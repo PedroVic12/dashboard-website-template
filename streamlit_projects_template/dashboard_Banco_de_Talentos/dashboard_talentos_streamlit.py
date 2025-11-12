@@ -328,7 +328,6 @@ class FormularyAnalyzer:
 
     def SistemaRecomendaWidget(self, df_merged):
 
-        
         # ------------- Sistema de Recomendação -------------
         st.header("Sistema de Recomendação de Candidatos")
         st.markdown("""
@@ -530,10 +529,17 @@ class DashboardApp:
         with tab2:
             self.analyzer2.display_metrics()
 
-            #! Já conhece o ONS antes da Visita? Como descreve a empresa ONS, Qual área do ONS te interessa mais? Pretende pretenda participar dos processos seletivos? Quer fazer faculdade?
+            #! Já conhece o ONS antes da Visita? Como descreve a empresa ONS? Qual área do ONS te interessa mais? Pretende pretenda participar dos processos seletivos? Quer fazer faculdade?
+            # 1) Já conhece o ONS antes da Visita? Como descreve a empresa ONS?
+            #st.
 
+            # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
 
-            #! O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
+            # 3) Nuvem de Palavras - O que mais te marcou no evento?
+            self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
+
+            # 4) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
+            self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
 
             #self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
             #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse (Form. 2)")
