@@ -90,7 +90,6 @@ custom_css = """
 </style>
 """
 
-st.markdown(custom_css, unsafe_allow_html=True)
 
 
 ### ---- Classes Principais 
@@ -275,7 +274,9 @@ class DashboardApp:
             st.session_state.messages = initial_history_with_context
         
         self.chatbot = ChatbotComponent()
-        print("✅ DataFrames carregados e passado para o histórico inicial do chatbot!")
+        st.markdown(custom_css, unsafe_allow_html=True)
+        if not self.df1.empty and not self.df2.empty:
+            print("✅ DataFrames carregados e passado para o histórico inicial do chatbot!")
 
 
     def run(self):
