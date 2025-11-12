@@ -258,15 +258,15 @@ class DashboardApp:
         with tab1:
             self.analyzer1.display_metrics()
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
-            self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
-            self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
-            self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
+            #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
+            #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
+            #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
 
         with tab2:
             self.analyzer2.display_metrics()
-            self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
-            self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse (Form. 2)")
-            self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
+            #self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
+            #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse (Form. 2)")
+            #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
 
         with tab_chatbot:
             # Garantir que o assistente do chatbot esteja carregado
