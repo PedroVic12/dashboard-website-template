@@ -225,7 +225,7 @@ class ChatbotComponent:
         # User Input
         user_prompt = st.chat_input("Digite sua mensagem para o Chatbot...")
         if user_prompt:
-            st.session_state.messages.append({"role": "user", "parts": [{"text": user_prompt}]}
+            st.session_state.messages.append({"role": "user", "parts": [{"text": user_prompt}]})
             st.session_state.current_audio_bytes = None
             st.session_state.current_audio_key = None
             st.rerun()
@@ -241,16 +241,16 @@ class ChatbotComponent:
 
                 with st.spinner("Chatbot está pensando..."):
                     response_text, ai_history_entry, error = self.assistente.send_to_gemini(
-                        prompt_text=last_user_message["parts" у[0]["text"],
+                        prompt_text=last_user_message["parts"][0]["text"],
                         history=st.session_state.messages[:-1]
                     )
 
                 if ai_history_entry:
                     st.session_state.messages.append(ai_history_entry)
                 elif response_text and not ai_history_entry:
-                    st.session_state.messages.append({"role": "model", "parts": [{"text": response_text}]}
+                    st.session_state.messages.append({"role": "model", "parts": [{"text": response_text}]})
                 elif error:
-                    st.session_state.messages.append({"role": "model", "parts": [{"text": f"🤖 Oh não! Erro interno: {error}"}]}
+                    st.session_state.messages.append({"role": "model", "parts": [{"text": f"🤖 Oh não! Erro interno: {error}"}]})   
                 st.rerun()
 
 # --- 4. Classe Principal do Dashboard (DashboardApp) ---

@@ -64,30 +64,94 @@ def get_initial_chatbot_history_with_context(df1: pd.DataFrame, df2: pd.DataFram
 
 ### ----
 
-# Custom CSS for styling the tabs
+# Custom CSS for styling the tabs, supporting dark and light modes
 custom_css = """
 <style>
-/* Style for the active tab header */
-.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-    background-color: #4CAF50; /* Green background for active tab */
-    color: white;
-    border-radius: 5px 5px 0 0;
-}
-
-/* Style for inactive tab headers */
+/* General tab styling */
 .stTabs [data-baseweb="tab-list"] button {
-    background-color: #f0f2f6; /* Light gray background for inactive tabs */
-    color: #333;
     border-radius: 5px 5px 0 0;
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    padding: 0.5em 1em; /* Adjust padding for text size */
+    font-size: 1rem; /* Adjust font size as needed */
 }
 
-/* Style for the tab content area */
+
+
+
+/* Active tab - Common styles */
+.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    font-weight: bold;
+}
+
+/* Tab content area - Common styles */
 .stTabs [data-baseweb="tab-panel"] {
-    background-color: #e6e6e6; /* Lighter gray background for content */
-    padding: 20px;
+
+
+    padding: 1em;
     border-radius: 0 0 5px 5px;
 }
+
+/* Light mode */
+.light-mode .stTabs [data-baseweb="tab-list"] button {
+    background-color: #f0f2f6; /* Light gray background for inactive tabs */
+    color: #333;
+}
+
+.light-mode .stTabs [data-baseweb="tab-list"] button[aria-selected="true" {
+    background-color: #4CAF50; /* Green background for active tab */
+    color: white;
+}
+
+.light-mode .stTabs [data-baseweb="tab-panel"] {
+    background-color: #e6e6e6; /* Lighter gray background for content */
+    color: black;
+}
+
+/* Dark mode */
+.dark-mode .stTabs [data-baseweb="tab-list"] button {
+    background-color: #262730; /* Dark gray background for inactive tabs */
+    color: #808080;
+}
+
+.dark-mode .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    background-color: #4CAF50; /* Green background for active tab */
+    color: white;
+}
+
+.dark-mode .stTabs [data-baseweb="tab-panel"] {
+    background-color: #464755; /* Darker gray background for content */
+    color: #FAFAFA;
+}
+
+/* Responsive adjustments (example) */
+@media (max-width: 600px) {
+    .stTabs [data-baseweb="tab-list"] button {
+        font-size: 0.8rem; /* Smaller font size on smaller screens */
+        padding: 0.4em 0.8em;
+    }
+}
 </style>
+
+<script>
+// Function to add/remove dark mode class based on Streamlit theme
+function detectColorScheme() {
+  var theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+
+  if (theme === "dark") {
+    document.body.classList.add("dark-mode");
+    document.body.classList.remove("light-mode");
+  } else {
+    document.body.classList.add("light-mode");
+    document.body.classList.remove("dark-mode");
+  }
+}
+
+// Initial detection
+detectColorScheme();
+
+// Listen for changes in prefers-color-scheme
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", detectColorScheme);
+</script>
 """
 
 
@@ -281,7 +345,8 @@ class DashboardApp:
     def run(self):
         st.markdown(custom_css, unsafe_allow_html=True)
 
-        st.title("Dashboard ONS Inspira - Análise de Candidatos para o Banco de talentos ")
+        st.title("Dashboard ONS Inspira 2025")
+        st.subheader("Análise de Candidatos para o Banco de talentos ")
         st.markdown("Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.")
 
         # Inicializar st.session_state.messages com o histórico contextualizado
