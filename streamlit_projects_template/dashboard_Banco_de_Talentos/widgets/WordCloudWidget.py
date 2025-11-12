@@ -5,7 +5,7 @@ import io # Importar io para lidar com bytes da imagem
 from collections import Counter # Mover import para o topo
 
 def create_wordcloud(text):
-    wordcloud_img = WordCloud(width = 300, height = 300,
+    wordcloud_img = WordCloud(width = 100, height = 100,
                 background_color ='white',
                 min_font_size = 10).generate(text)
     return wordcloud_img
