@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import plotly.express as px # Novo import para Plotly
-import google.generativeai as genai
-from gtts import gTTS
-import io
 
 # Importações do chatbot (assumindo que 'oraculo Chatbot' está no mesmo diretório)
 from oraculo_chatbot.config import API_KEY, DEFAULT_MODEL, historico_c3po_inicial
@@ -67,7 +64,7 @@ def get_initial_chatbot_history_with_context(df1: pd.DataFrame, df2: pd.DataFram
     return contextual_history
 
 
-### ----
+### -----------------------------------------
 
 # Custom CSS for styling the tabs, supporting dark and light modes
 custom_css = """
@@ -79,9 +76,6 @@ custom_css = """
     padding: 0.5em 1em; /* Adjust padding for text size */
     font-size: 1rem; /* Adjust font size as needed */
 }
-
-
-
 
 /* Active tab - Common styles */
 .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
@@ -161,7 +155,7 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", det
 
 
 
-### ---- Classes Principais 
+### ---- Classes de Componentes 
 
 # --- 2. Classe para Análise de Formulários (FormularyAnalyzer) ---
 class FormularyAnalyzer:
@@ -264,35 +258,50 @@ class FormularyAnalyzer:
         else:
             st.warning(f"Coluna '{nome_coluna}' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
 
-    def IsoTypeGridContainer(self):
+    def MarkBarChartWidget(self, type_chart: str = "altair"):
         df_merged = self.df.copy()
 
         # Exemplo de uso do IsoTypeGridWidget (para visualização de proporções)
-        st.subheader("Pretende Cursar Faculdade?")
         coluna = "Você pretende cursar faculdade?"
+        titulo = 'Pretende Cursar Faculdade?'
+
         if coluna in df_merged.columns:
             # Contar a frequência das respostas
             faculdade_counts = df_merged[coluna].value_counts(normalize=True).reset_index()
             faculdade_counts.columns = ['Resposta', 'Proporcao']
 
             # Criar um gráfico de barras simples com Altair para mostrar a proporção
-            chart_faculdade = alt.Chart(faculdade_counts).mark_bar().encode(
-                x=alt.X('Resposta:N', title='Pretende Cursar Faculdade?'),
-                y=alt.Y('Proporcao:Q', title='Proporção', axis=alt.Axis(format='%')),
-                tooltip=['Resposta', alt.Tooltip('Proporcao', format='.1%')]
-            ).properties(
-                title='Proporção de Respostas sobre Pretender Cursar Faculdade'
-            )
-            st.altair_chart(chart_faculdade, use_container_width=True)
-            st.info("O `IsoTypeGridWidget` original cria uma grade genérica. Aqui, usamos um gráfico de barras Altair para visualizar a proporção 'Pretende Cursar Faculdade?' dos seus dados. Você pode adaptar a lógica para criar uma visualização de grade isotípica personalizada se desejar.")
+            if type_chart == "altair":
+                chart_faculdade = alt.Chart(faculdade_counts).mark_bar().encode(
+                    x=alt.X('Resposta:N', title=titulo),
+                    y=alt.Y('Proporcao:Q', title='Proporção', axis=alt.Axis(format='%')),
+                    tooltip=['Resposta', alt.Tooltip('Proporcao', format='.1%')]
+                ).properties(
+                    title=titulo
+                )
+                st.altair_chart(chart_faculdade, use_container_width=True)
+                st.info("O `IsoTypeGridWidget` original cria uma grade genérica. Aqui, usamos um gráfico de barras Altair para visualizar a proporção 'Pretende Cursar Faculdade?' dos seus dados. Você pode adaptar a lógica para criar uma visualização de grade isotípica personalizada se desejar.")
+            
+            elif type_chart == "pizza":
+                # 2. Create the pie chart using Plotly Express
+                fig = px.pie(df_merged, 
+                            values=faculdade_counts['Proporcao'], 
+                            names=faculdade_counts['Resposta'], 
+                            title=titulo,
+                            hole=0.3) # Optional: create a donut chart
+
+                # 3. Display the chart in Streamlit
+                st.plotly_chart(fig, use_container_width=True)
         else:
-            st.warning("Coluna 'Pretende Cursar Faculdade' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
+            st.warning(f"Tipo de gráfico '{type_chart}' não suportado. Use 'altair'.")
 
     def CrossHighlightContainer(self):
         df_merged = self.df.copy()
 
+        nomes_colunas = ["Escolaridade", "Qual área do ONS te interessa mais?"]
+
         # Exemplo de uso do CrossHighlightWidget (para interação entre gráficos)
-        st.subheader(" Escolaridade vs. Área de Interesse")
+        st.subheader(f" {nomes_colunas[0]} vs. {nomes_colunas[1]}")
         st.markdown("""
             Este widget é projetado para criar gráficos interativos com destaque cruzado.
             Vamos criar dois gráficos Altair que interagem, mostrando a relação entre a escolaridade e as áreas de interesse.
@@ -302,8 +311,8 @@ class FormularyAnalyzer:
             # Gráfico 1: Escolaridade
             base = alt.Chart(df_merged).encode(
                 x=alt.X('count()', title='Número de Pessoas'),
-                y=alt.Y('Escolaridade:N', sort='-x', title='Escolaridade'),
-                tooltip=['Escolaridade', 'count()']
+                y=alt.Y(f'{nomes_colunas[0]}:N', sort='-x', title=f'{nomes_colunas[0]}'),
+                tooltip=[f'{nomes_colunas[0]}', 'count()']
             )
 
             brush = alt.selection_interval(encodings=['y']) # Seleção na barra de escolaridade
@@ -315,8 +324,8 @@ class FormularyAnalyzer:
             # Gráfico 2: Área de Interesse filtrado pela escolaridade selecionada
             chart_area_filtered = alt.Chart(df_merged).mark_bar().encode(
                 x=alt.X('count()', title='Número de Pessoas'),
-                y=alt.Y('Area de Interesse:N', sort='-x', title='Área de Interesse'),
-                tooltip=['Area de Interesse', 'count()']
+                y=alt.Y(f'{nomes_colunas[1]}:N', sort='-x', title=f'{nomes_colunas[1]}'),
+                tooltip=[f'{nomes_colunas[1]}', 'count()']
             ).transform_filter(brush) # Filtra áreas de interesse com base na seleção de escolaridade
 
             # Concatenar os dois gráficos
@@ -364,6 +373,18 @@ class FormularyAnalyzer:
 
                     if not recommended_candidates.empty:
                         st.dataframe(recommended_candidates)
+
+                        #plot das recomendações
+                        fig = px.bar(
+                            recommended_candidates,
+                            x='Nome Completo',
+                            y='Similarity Score',
+                            title=f'Similarity Scores dos Candidatos Recomendados para {selected_candidate_str}',
+                            labels={'Nome Completo': 'Candidato', 'Similarity Score': 'Pontuação de Similaridade'}
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+
                     else:
                         st.info("Nenhum candidato recomendado encontrado ou o candidato selecionado não possui informações de texto suficientes.")
                 else:
@@ -458,6 +479,7 @@ class ChatbotComponent:
                     st.session_state.messages.append({"role": "model", "parts": [{"text": f"🤖 Oh não! Erro interno: {error}"}]})
                 st.rerun()
 
+### -----------------------------------------
 # --- 4. Classe Principal do Dashboard (DashboardApp) ---
 class DashboardApp:
     def __init__(self):
@@ -509,22 +531,20 @@ class DashboardApp:
 
             #! Escolaridade, Já conhece o ONS, O que acha da empresa, Qual área do ONS te interessa mais? Pretende cursar faculdade?
 
-
             #! 1) Idades dos Participantes (contador)
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
      
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
-            self.analyzer1.IsoTypeGridContainer()
+            self.analyzer1.MarkBarChartWidget(type_chart="pizza")
+            #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
 
             # 3) Escolaridade vs. Área de Interesse
             self.analyzer1.CrossHighlightContainer()
+            #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
+            #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
 
             # 4) Nuvem de Palavras O que eles acham sobre o que é ONS
             self.analyzer1.NuvemPalavras()
-
-            #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
-            #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
-            #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
 
         with tab2:
             self.analyzer2.display_metrics()
@@ -534,16 +554,18 @@ class DashboardApp:
             #st.
 
             # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
+            #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse")
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
             self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
 
-            # 4) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
-            self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
-
-            #self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
-            #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse (Form. 2)")
+            # 4) Você já conhecia o ONS antes da visita? Você tem interesse em participar de programas do ONS?
+            self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
             #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
+
+            # Sistema de Recomendação de Candidatos
+            # 5) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
+            self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
 
         with tab_chatbot:
             # Garantir que o assistente do chatbot esteja carregado

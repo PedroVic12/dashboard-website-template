@@ -79,12 +79,12 @@ if 'Area de Interesse' in df_merged.columns:
         with tab_interactive:
             st.markdown("### Nuvem de Palavras Interativa (Streamlit WordCloud)")
             words_for_interactive = get_wordcloud_data_for_streamlit(areas_interesse_texto)
-            if words_for_interactive:
-                wordcloud_image.visualize(words_for_interactive, tooltip_data_fields={
-                    'text':'Área', 'value':'Frequência'
-                }, per_word_coloring=False)
-            else:
-                st.info("Nenhum dado disponível para gerar a Nuvem de Palavras Interativa.")
+            # if words_for_interactive:
+            #     wordcloud_image.visualize(words_for_interactive, tooltip_data_fields={
+            #         'text':'Área', 'value':'Frequência'
+            #     }, per_word_coloring=False)
+            # else:
+            #     st.info("Nenhum dado disponível para gerar a Nuvem de Palavras Interativa.")
     else:
         st.info("Nenhum dado disponível na coluna 'Area de Interesse' para gerar a Nuvem de Palavras.")
 else:
