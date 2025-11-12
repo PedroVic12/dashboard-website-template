@@ -521,7 +521,7 @@ class DashboardApp:
 
         # Botão de link com ícone
         with col3:
-            st.link_button("Galeria Streamlit", "https://share.streamlit.io/streamlit/demo-app", use_container_width=True, icon="🚀")
+            st.link_button("Galeria Streamlit", "https://vega.github.io/editor/#/examples/vega-lite/isotype_grid", use_container_width=True, icon="🚀")
 
     def run(self):
         st.markdown(custom_css, unsafe_allow_html=True)
