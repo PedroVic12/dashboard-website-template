@@ -579,11 +579,13 @@ class DashboardApp:
 
             # 4) Você já conhecia o ONS antes da visita? Você tem interesse em participar de programas do ONS?
             self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
-            #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
 
             # Sistema de Recomendação de Candidatos
             # 5) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
             self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
+
+            self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
+
 
         with tab_chatbot:
             # Garantir que o assistente do chatbot esteja carregado
