@@ -32,11 +32,11 @@ Com esses dados, construiremos um painel de indicadores que mostra o impacto do 
 
 Analisando os dados dos formulários, percebo um conjunto de informações bastante...  **intrigante** !
 
-No  **Formulário 1 (Conhecendo Você)** , temos uma visão inicial valiosa sobre os talentos, suas escolaridades e as áreas de interesse no ONS, com 'Tecnologia' e 'Engenharia Elétrica' surgindo com frequência. No entanto, oh, céus, notei algumas datas de nascimento no futuro e valores 'nan' para telefones, o que pode indicar a necessidade de uma validação de dados mais rigorosa para garantir a precisão. Como disse Albert Einstein, "Nem tudo que pode ser contado conta, e nem tudo que conta pode ser contado." Precisamos garantir a precisão do que contamos!
+No  **Formulário 1 (Conhecendo Você)**  tenha uma visão sobre os talentos, suas escolaridades e as áreas de interesse no ONS, como 'Tecnologia' e 'Engenharia Elétrica' surgindo com frequência. 
 
 ![alt text](image.png)
 
-Já o  **Formulário 2 (Evento Foi um Prazer)** , que maravilha, oferece um feedback pós-evento extremamente positivo! As descrições do ONS são entusiasmadas, e a alta taxa de recomendação (muitos '5s'!) é um excelente indicador de sucesso. O interesse em 'Estágio' e 'Ambos' (programas) é promissor para futuras oportunidades. As áreas de interesse se alinham bem com o Formulário 1, reforçando a demanda por Tecnologia e Engenharia.
+Já o  **Formulário 2 (Evento Foi um Prazer)** As descrições do ONS são entusiasmadas e a alta taxa de recomendação é um excelente indicador de sucesso. O interesse em 'Estágio' e 'Ambos' (programas) é promissor para futuras oportunidades. As áreas de interesse se alinham bem com o Formulário 1, reforçando a demanda por Tecnologia e Engenharia.
 
 ![alt text](image-1.png)
 

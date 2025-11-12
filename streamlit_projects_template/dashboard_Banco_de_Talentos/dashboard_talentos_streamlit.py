@@ -16,6 +16,9 @@ from oraculo_chatbot.assistente_genai import AssistenteGenAI
 # Para executar o dashboard
 #! streamlit run dashboard_talentos_streamlit.py
 
+
+### ---- Funções auxiliares
+
 # --- 1. Função para carregar os dados (get_results_forms) ---
 def get_results_forms():
     base_path = os.path.join(
@@ -57,6 +60,40 @@ def get_initial_chatbot_history_with_context(df1: pd.DataFrame, df2: pd.DataFram
         contextual_history.append({"role": "model", "parts": [{"text": "Ah, compreendo, Mestre Pedro! Que maravilha! Terei esses dados em mente para auxiliá-lo da melhor forma possível. Como posso proceder?"}]})
 
     return contextual_history
+
+
+### ----
+
+# Custom CSS for styling the tabs
+custom_css = """
+<style>
+/* Style for the active tab header */
+.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    background-color: #4CAF50; /* Green background for active tab */
+    color: white;
+    border-radius: 5px 5px 0 0;
+}
+
+/* Style for inactive tab headers */
+.stTabs [data-baseweb="tab-list"] button {
+    background-color: #f0f2f6; /* Light gray background for inactive tabs */
+    color: #333;
+    border-radius: 5px 5px 0 0;
+}
+
+/* Style for the tab content area */
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: #e6e6e6; /* Lighter gray background for content */
+    padding: 20px;
+    border-radius: 0 0 5px 5px;
+}
+</style>
+"""
+
+st.markdown(custom_css, unsafe_allow_html=True)
+
+
+### ---- Classes Principais 
 
 # --- 2. Classe para Análise de Formulários (FormularyAnalyzer) ---
 class FormularyAnalyzer:
@@ -100,8 +137,9 @@ class FormularyAnalyzer:
                          title="Distribuição de Idade por Participante",
                          labels={'color': 'Entrada do Formulário'}) # Adiciona um rótulo para a legenda de cores
 
-            # Adicionar a faixa etária de 17 a 25 anos
-            fig.add_hrect(y0=17, y1=25, line_width=0, fillcolor="red", opacity=0.2, annotation_text="Idade 17-25")
+            # Adicionar a faixa etária de 17 a 24 anos
+            intervalo_idade = [17, 24]
+            fig.add_hrect(y0=intervalo_idade[0], y1=intervalo_idade[1], line_width=0, fillcolor="red", opacity=0.2, annotation_text=f"Idade: {intervalo_idade}")
             
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -241,7 +279,7 @@ class DashboardApp:
 
 
     def run(self):
-        st.title("Dashboard ONS Inspira - Análise de Candidatos")
+        st.title("Dashboard ONS Inspira - Análise de Candidatos para o Banco de talentos ")
         st.markdown("Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.")
 
         # Inicializar st.session_state.messages com o histórico contextualizado
@@ -250,20 +288,33 @@ class DashboardApp:
             st.session_state.messages = initial_history_with_context
 
         tab1, tab2, tab_chatbot = st.tabs([
-            "Formulário 1: Conhecendo Você", 
-            "Formulário 2: Evento Foi um Prazer", 
-            "Chatbot Gemini"
+            #"Formulário 1: Conhecendo Você", 
+            #"Formulário 2: Evento Foi um Prazer", 
+            "Formulário 1: Conhecendo os candidatos",
+            "Formulário 2: Agradecimento pelo evento WorkShop",
+            "Chatbot AI"
         ])
 
         with tab1:
             self.analyzer1.display_metrics()
+
+            #! Idades dos Participantes
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
+
+
+            #! Escolaridade, Já conhece o ONS, O que acha da empresa, Qual área do ONS te interessa mais? Pretende cursar faculdade?
             #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
             #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
             #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
 
         with tab2:
             self.analyzer2.display_metrics()
+
+            #! Já conhece o ONS antes da Visita? Como descreve a empresa ONS, Qual área do ONS te interessa mais? Pretende pretenda participar dos processos seletivos? Quer fazer faculdade?
+
+
+            #! O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
+
             #self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
             #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse (Form. 2)")
             #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
