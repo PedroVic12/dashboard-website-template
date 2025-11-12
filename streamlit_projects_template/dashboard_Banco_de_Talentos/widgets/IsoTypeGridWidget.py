@@ -1,6 +1,5 @@
 import streamlit as st
 
-@st.experimental_memo
 def get_chart_67593(use_container_width: bool):
     import altair as alt
     import pandas as pd

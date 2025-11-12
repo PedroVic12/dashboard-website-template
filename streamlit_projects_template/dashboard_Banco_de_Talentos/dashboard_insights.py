@@ -2,30 +2,39 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
-import matplotlib.pyplot as plt # Adicionar import para matplotlib
-import altair as alt # Adicionar import para Altair
+import matplotlib.pyplot as plt
+import altair as alt
+import io # Para salvar a imagem
 
 # Adiciona o diretório raiz do projeto ao sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
 
 # Importar o dataset_banco_talentos.py e seus dataframes
-from scripts.dataset_banco_talentos import df_formulario1, df_formulario2
+from scripts.dataset_banco_talentos import df_formulario1, df_formulario2, df_merged
+
+# Importar o sistema de recomendação
+from scripts.recommendation_system import get_recommendations
 
 # Importar os widgets
 from widgets.CrossHighlightWidget import vega_lite_json
 from widgets.IsoTypeGridWidget import get_chart_67593
-from widgets.WordCloudWidget import create_wordcloud
+from widgets.WordCloudWidget import create_wordcloud, get_wordcloud_data_for_streamlit, create_categorized_wordclouds # Importar a nova função
 
-st.set_page_config(layout="wide", page_title="Dashboard ONS Inspira - Banco de Talentos")
+
+
+#st.set_page_config(layout="wide", page_title="Dashboard ONS Inspira - Banco de Talentos")
 
 st.title("Dashboard ONS Inspira - Banco de Talentos")
 
-# Seção para exibir os dados brutos (opcional)
+# Seção para exibir os dados brutos
 st.header("Dados dos Formulários")
 st.subheader("Formulário 1: Conhecendo Você")
 st.dataframe(df_formulario1.head())
 st.subheader("Formulário 2: Foi um prazer")
 st.dataframe(df_formulario2.head())
+st.subheader("Dados Unificados (df_merged)")
+st.dataframe(df_merged.head())
+
 
 # Seção de insights (com base em upgrades.md)
 st.header("Insights dos Formulários")
@@ -36,72 +45,190 @@ st.markdown("""
     O interesse em programas de `Estágio` e `Jovem Aprendiz` é promissor para futuras oportunidades.
 """)
 
-# Exemplo de uso do WordCloudWidget para áreas de interesse
+# ------------- Nuvem de Palavras com Abas e Salvar Imagem -------------
 st.subheader("Nuvem de Palavras das Áreas de Interesse")
 
-# Assumindo que 'Área de Interesse' é o nome da coluna no df_formulario1
-if 'Área de Interesse' in df_formulario1.columns:
-    areas_interesse_texto = " ".join(df_formulario1['Área de Interesse'].dropna().astype(str).tolist())
+tab_mpl, tab_interactive = st.tabs(["Nuvem de Palavras (Matplotlib)", "Nuvem de Palavras (Interativa)"])
+
+if 'Area de Interesse' in df_merged.columns:
+    all_interests = []
+    for interests_str in df_merged['Area de Interesse'].dropna().astype(str):
+        all_interests.extend([item.strip() for item in interests_str.split(';') if item.strip()])
+    
+    areas_interesse_texto = " ".join(all_interests)
+
     if areas_interesse_texto:
-        wordcloud_image = create_wordcloud(areas_interesse_texto)
-        fig, ax = plt.subplots(figsize = (12, 8)) # Importar matplotlib.pyplot as plt
-        ax.imshow(wordcloud_image)
-        plt.axis("off")
-        st.pyplot(fig)
+        with tab_mpl:
+            st.markdown("### Nuvem de Palavras com Matplotlib")
+            wordcloud_image = create_wordcloud(areas_interesse_texto)
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.imshow(wordcloud_image)
+            plt.axis("off")
+            st.pyplot(fig)
+
+            # Botão para salvar a imagem
+            buf = io.BytesIO()
+            plt.savefig(buf, format="png")
+            st.download_button(
+                label="Salvar Imagem",
+                data=buf.getvalue(),
+                file_name="nuvem_de_palavras.png",
+                mime="image/png"
+            )
+
+        with tab_interactive:
+            st.markdown("### Nuvem de Palavras Interativa (Streamlit WordCloud)")
+            words_for_interactive = get_wordcloud_data_for_streamlit(areas_interesse_texto)
+            if words_for_interactive:
+                wordcloud_image.visualize(words_for_interactive, tooltip_data_fields={
+                    'text':'Área', 'value':'Frequência'
+                }, per_word_coloring=False)
+            else:
+                st.info("Nenhum dado disponível para gerar a Nuvem de Palavras Interativa.")
     else:
-        st.info("Nenhum dado disponível na coluna 'Área de Interesse' para gerar a Nuvem de Palavras.")
+        st.info("Nenhum dado disponível na coluna 'Area de Interesse' para gerar a Nuvem de Palavras.")
 else:
-    st.warning("Coluna 'Área de Interesse' não encontrada no Formulário 1. Verifique o nome da coluna.")
+    st.warning("Coluna 'Area de Interesse' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
+
+# ------------- Fim da Nuvem de Palavras -------------
+
+# ------------- Nuvem de Palavras Categorizadas -------------
+st.subheader("Nuvens de Palavras por Categoria")
+
+if 'Em poucas palavras, o que mais te marcou no evento?' in df_merged.columns and \
+   'Escolaridade' in df_merged.columns:
+
+    categorized_wordclouds_dict = create_categorized_wordclouds(
+        df=df_merged,
+        text_column='Em poucas palavras, o que mais te marcou no evento?',
+        category_column='Escolaridade'
+    )
+
+    if categorized_wordclouds_dict:
+        category_tabs = st.tabs(list(categorized_wordclouds_dict.keys()))
+        
+        for i, category in enumerate(categorized_wordclouds_dict.keys()):
+            with category_tabs[i]:
+                st.markdown(f"### Nuvem de Palavras para Escolaridade: {category}")
+                wordcloud_obj = categorized_wordclouds_dict[category]
+                fig, ax = plt.subplots(figsize=(12, 8))
+                ax.imshow(wordcloud_obj)
+                plt.axis("off")
+                st.pyplot(fig)
+
+                buf = io.BytesIO()
+                plt.savefig(buf, format="png")
+                st.download_button(
+                    label=f"Salvar Imagem - {category}",
+                    data=buf.getvalue(),
+                    file_name=f"nuvem_de_palavras_{category.replace(' ', '_')}.png",
+                    mime="image/png"
+                )
+    else:
+        st.info("Nenhuma nuvem de palavras categorizada foi gerada. Verifique os dados e as colunas.")
+else:
+    st.warning("Colunas 'Em poucas palavras, o que mais te marcou no evento?' ou 'Escolaridade' não encontradas no dataframe mesclado para Nuvem de Palavras Categorizada. Verifique os nomes das colunas.")
+# ------------- Fim da Nuvem de Palavras Categorizadas -------------
 
 
 # Exemplo de uso do IsoTypeGridWidget (para visualização de proporções)
-st.subheader("Visualização de Proporções (Exemplo com IsoTypeGrid)")
-# Para usar o IsoTypeGridWidget, você precisará adaptar os dados.
-# Por exemplo, a proporção de pessoas interessadas em estágio vs. jovem aprendiz.
-# Aqui, vou renderizar o gráfico padrão do widget.
-iso_chart = get_chart_67593(use_container_width=True)
+st.subheader("Visualização de Proporções: Pretende Cursar Faculdade?")
 
-tab1, tab2 = st.tabs(["Streamlit theme (default)", "Altair native theme"])
+if 'Pretende Cursar Faculdade' in df_merged.columns:
+    # Contar a frequência das respostas
+    faculdade_counts = df_merged['Pretende Cursar Faculdade'].value_counts(normalize=True).reset_index()
+    faculdade_counts.columns = ['Resposta', 'Proporcao']
 
-with tab1:
-    st.altair_chart(iso_chart, theme="streamlit", use_container_width=True)
-with tab2:
-    st.altair_chart(iso_chart, theme=None, use_container_width=True)
+    # Criar um gráfico de barras simples com Altair para mostrar a proporção
+    chart_faculdade = alt.Chart(faculdade_counts).mark_bar().encode(
+        x=alt.X('Resposta:N', title='Pretende Cursar Faculdade?'),
+        y=alt.Y('Proporcao:Q', title='Proporção', axis=alt.Axis(format='%')),
+        tooltip=['Resposta', alt.Tooltip('Proporcao', format='.1%')]
+    ).properties(
+        title='Proporção de Respostas sobre Pretender Cursar Faculdade'
+    )
+    st.altair_chart(chart_faculdade, use_container_width=True)
+    st.info("O `IsoTypeGridWidget` original cria uma grade genérica. Aqui, usamos um gráfico de barras Altair para visualizar a proporção 'Pretende Cursar Faculdade?' dos seus dados. Você pode adaptar a lógica para criar uma visualização de grade isotípica personalizada se desejar.")
+else:
+    st.warning("Coluna 'Pretende Cursar Faculdade' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
 
 
 # Exemplo de uso do CrossHighlightWidget (para interação entre gráficos)
-st.subheader("Interação entre Gráficos (Exemplo com CrossHighlight)")
+st.subheader("Interação entre Gráficos: Escolaridade vs. Área de Interesse")
 st.markdown("""
     Este widget é projetado para criar gráficos interativos com destaque cruzado.
-    Para uma demonstração funcional, vamos usar um conjunto de dados de exemplo.
+    Vamos criar dois gráficos Altair que interagem, mostrando a relação entre a escolaridade e as áreas de interesse.
 """)
 
-# Criar um dataframe dummy para a demonstração do CrossHighlightWidget
-cross_highlight_df = pd.DataFrame({
-    'categoria': ['A', 'B', 'C', 'A', 'B', 'C', 'A', 'B', 'C'],
-    'valor1': [10, 20, 15, 12, 22, 18, 11, 25, 17],
-    'valor2': [5, 8, 7, 6, 9, 8, 7, 10, 9]
-})
+if 'Escolaridade' in df_merged.columns and 'Area de Interesse' in df_merged.columns:
+    # Gráfico 1: Escolaridade
+    base = alt.Chart(df_merged).encode(
+        x=alt.X('count()', title='Número de Pessoas'),
+        y=alt.Y('Escolaridade:N', sort='-x', title='Escolaridade'),
+        tooltip=['Escolaridade', 'count()']
+    )
 
-# Adapte a especificação vega_lite_json se necessário para usar cross_highlight_df
-# Por simplicidade, para demonstração, vou exibir a especificação original e
-# um gráfico vega-lite básico que se alinha com a ideia.
-# st.vega_lite_chart(cross_highlight_df, vega_lite_json, use_container_width=True)
-# A especificação original em vega_lite_json usa "data": {"url": "data/movies.json"},
-# Para usar com um dataframe, a especificação precisa ser atualizada.
-# Por enquanto, vou fazer uma demonstração mais simples que pode ser expandida.
+    brush = alt.selection_interval(encodings=['y']) # Seleção na barra de escolaridade
 
-# Exemplo de uma especificação Vega-Lite simplificada para demonstração:
-simple_vega_spec = {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "description": "Um gráfico de dispersão simples.",
-    "mark": "point",
-    "encoding": {
-        "x": {"field": "valor1", "type": "quantitative"},
-        "y": {"field": "valor2", "type": "quantitative"},
-        "color": {"field": "categoria", "type": "nominal"}
-    }
-}
+    bars_edu = base.mark_bar().encode(
+        color=alt.condition(brush, 'Escolaridade:N', alt.value('lightgray'))
+    ).add_params(brush)
 
-st.vega_lite_chart(cross_highlight_df, simple_vega_spec, use_container_width=True)
-st.info("Para um destaque cruzado mais avançado, o `vega_lite_json` no `CrossHighlightWidget.py` precisa ser adaptado para usar os dados do seu dataframe ou uma estrutura de dados compatível.")
+    # Gráfico 2: Área de Interesse filtrado pela escolaridade selecionada
+    chart_area_filtered = alt.Chart(df_merged).mark_bar().encode(
+        x=alt.X('count()', title='Número de Pessoas'),
+        y=alt.Y('Area de Interesse:N', sort='-x', title='Área de Interesse'),
+        tooltip=['Area de Interesse', 'count()']
+    ).transform_filter(brush) # Filtra áreas de interesse com base na seleção de escolaridade
+
+    # Concatenar os dois gráficos
+    st.altair_chart(bars_edu | chart_area_filtered, use_container_width=True)
+
+else:
+    st.warning("Colunas 'Escolaridade' ou 'Area de Interesse' não encontradas no dataframe mesclado para o Cross-Highlight. Verifique os nomes das colunas.")
+
+
+# ------------- Sistema de Recomendação -------------
+st.header("Sistema de Recomendação de Candidatos")
+st.markdown("""
+    Selecione um candidato para encontrar outros candidatos com interesses semelhantes.
+""")
+
+if not df_merged.empty and 'Email' in df_merged.columns and 'Nome Completo' in df_merged.columns:
+    candidate_options = df_merged.apply(lambda row: f"{row['Nome Completo']} ({row['Email']})", axis=1).tolist()
+    selected_candidate_str = st.selectbox("Selecione um candidato:", options=candidate_options)
+
+    if selected_candidate_str:
+        # Extrair o email do candidato selecionado
+        selected_email = selected_candidate_str.split('(')[-1][:-1]
+
+        # Colunas de texto para o sistema de recomendação
+        recommendation_text_columns = [
+            'Area de Interesse',
+            'O que você acha que o ONS faz?',
+            'Depois de hoje, como você descreveria o ONS?',
+            'Em poucas palavras, o que mais te marcou no evento?'
+        ]
+
+        # Filtrar apenas as colunas que realmente existem no df_merged
+        existing_text_columns = [col for col in recommendation_text_columns if col in df_merged.columns]
+
+        if existing_text_columns:
+            st.subheader(f"Candidatos Recomendados para {selected_candidate_str}:")
+            recommended_candidates = get_recommendations(
+                df_original=df_merged,
+                candidate_id=selected_email,
+                text_columns=existing_text_columns,
+                top_n=5
+            )
+
+            if not recommended_candidates.empty:
+                st.dataframe(recommended_candidates)
+            else:
+                st.info("Nenhum candidato recomendado encontrado ou o candidato selecionado não possui informações de texto suficientes.")
+        else:
+            st.warning("Nenhuma das colunas de texto para recomendação foi encontrada no dataframe mesclado. Verifique os nomes das colunas.")
+else:
+    st.warning("O DataFrame mesclado está vazio ou as colunas 'Email' ou 'Nome Completo' não foram encontradas para o sistema de recomendação.")
+
+# ------------- Fim do Sistema de Recomendação -------------

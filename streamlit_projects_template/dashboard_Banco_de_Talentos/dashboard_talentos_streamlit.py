@@ -10,6 +10,11 @@ import io
 from oraculo_chatbot.config import API_KEY, DEFAULT_MODEL, historico_c3po_inicial
 from oraculo_chatbot.assistente_genai import AssistenteGenAI
 
+from widgets.WordCloudWidget import create_wordcloud
+from scripts.recommendation_system import get_recommendations
+import altair as alt
+import matplotlib.pyplot as plt
+
 # Para instalar as depedencias
 #! pip install pandas streamlit plotly gtts google-generativeai
 
@@ -234,6 +239,142 @@ class FormularyAnalyzer:
         st.write(self.df[column].value_counts())
         # Aqui você pode adicionar um gráfico mais complexo, como um word cloud para texto livre, etc.
 
+    def NuvemPalavras(self, nome_coluna: str = "Qual área do ONS te interessa mais?"):
+        # Exemplo de uso do WordCloudWidget para áreas de interesse
+        st.subheader("Nuvem de Palavras das Áreas de Interesse")
+
+        df_merged = self.df.copy()
+
+        if nome_coluna in df_merged.columns:
+            # Trata a coluna 'Area de Interesse' para nuvem de palavras (lidando com múltiplos valores)
+            all_interests = []
+            for interests_str in df_merged[nome_coluna].dropna().astype(str):
+                all_interests.extend([item.strip() for item in interests_str.split(';') if item.strip()])
+            
+            areas_interesse_texto = " ".join(all_interests)
+
+            if areas_interesse_texto:
+                wordcloud_image = create_wordcloud(areas_interesse_texto)
+                fig, ax = plt.subplots(figsize=(12, 8))
+                ax.imshow(wordcloud_image)
+                plt.axis("off")
+                st.pyplot(fig)
+            else:
+                st.info(f"Nenhum dado disponível na coluna '{nome_coluna}' para gerar a Nuvem de Palavras.")
+        else:
+            st.warning(f"Coluna '{nome_coluna}' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
+
+    def IsoTypeGridContainer(self):
+        df_merged = self.df.copy()
+
+        # Exemplo de uso do IsoTypeGridWidget (para visualização de proporções)
+        st.subheader("Pretende Cursar Faculdade?")
+        coluna = "Você pretende cursar faculdade?"
+        if coluna in df_merged.columns:
+            # Contar a frequência das respostas
+            faculdade_counts = df_merged[coluna].value_counts(normalize=True).reset_index()
+            faculdade_counts.columns = ['Resposta', 'Proporcao']
+
+            # Criar um gráfico de barras simples com Altair para mostrar a proporção
+            chart_faculdade = alt.Chart(faculdade_counts).mark_bar().encode(
+                x=alt.X('Resposta:N', title='Pretende Cursar Faculdade?'),
+                y=alt.Y('Proporcao:Q', title='Proporção', axis=alt.Axis(format='%')),
+                tooltip=['Resposta', alt.Tooltip('Proporcao', format='.1%')]
+            ).properties(
+                title='Proporção de Respostas sobre Pretender Cursar Faculdade'
+            )
+            st.altair_chart(chart_faculdade, use_container_width=True)
+            st.info("O `IsoTypeGridWidget` original cria uma grade genérica. Aqui, usamos um gráfico de barras Altair para visualizar a proporção 'Pretende Cursar Faculdade?' dos seus dados. Você pode adaptar a lógica para criar uma visualização de grade isotípica personalizada se desejar.")
+        else:
+            st.warning("Coluna 'Pretende Cursar Faculdade' não encontrada no dataframe mesclado. Verifique o nome da coluna.")
+
+    def CrossHighlightContainer(self):
+        df_merged = self.df.copy()
+
+        # Exemplo de uso do CrossHighlightWidget (para interação entre gráficos)
+        st.subheader(" Escolaridade vs. Área de Interesse")
+        st.markdown("""
+            Este widget é projetado para criar gráficos interativos com destaque cruzado.
+            Vamos criar dois gráficos Altair que interagem, mostrando a relação entre a escolaridade e as áreas de interesse.
+        """)
+
+        if 'Escolaridade' in df_merged.columns and 'Qual área do ONS te interessa mais?' in df_merged.columns:
+            # Gráfico 1: Escolaridade
+            base = alt.Chart(df_merged).encode(
+                x=alt.X('count()', title='Número de Pessoas'),
+                y=alt.Y('Escolaridade:N', sort='-x', title='Escolaridade'),
+                tooltip=['Escolaridade', 'count()']
+            )
+
+            brush = alt.selection_interval(encodings=['y']) # Seleção na barra de escolaridade
+
+            bars_edu = base.mark_bar().encode(
+                color=alt.condition(brush, 'Escolaridade:N', alt.value('lightgray'))
+            ).add_params(brush)
+
+            # Gráfico 2: Área de Interesse filtrado pela escolaridade selecionada
+            chart_area_filtered = alt.Chart(df_merged).mark_bar().encode(
+                x=alt.X('count()', title='Número de Pessoas'),
+                y=alt.Y('Area de Interesse:N', sort='-x', title='Área de Interesse'),
+                tooltip=['Area de Interesse', 'count()']
+            ).transform_filter(brush) # Filtra áreas de interesse com base na seleção de escolaridade
+
+            # Concatenar os dois gráficos
+            st.altair_chart(bars_edu | chart_area_filtered, use_container_width=True)
+
+        else:
+            st.warning("Colunas 'Escolaridade' ou 'Area de Interesse' não encontradas no dataframe mesclado para o Cross-Highlight. Verifique os nomes das colunas.")
+
+
+    def SistemaRecomendaWidget(self, df_merged):
+
+        
+        # ------------- Sistema de Recomendação -------------
+        st.header("Sistema de Recomendação de Candidatos")
+        st.markdown("""
+            Selecione um candidato para encontrar outros candidatos com interesses semelhantes.
+        """)
+
+        if not df_merged.empty and 'Email' in df_merged.columns and 'Nome Completo' in df_merged.columns:
+            candidate_options = df_merged.apply(lambda row: f"{row['Nome Completo']} ({row['Email']})", axis=1).tolist()
+            selected_candidate_str = st.selectbox("Selecione um candidato:", options=candidate_options)
+
+            if selected_candidate_str:
+                # Extrair o email do candidato selecionado
+                selected_email = selected_candidate_str.split('(')[-1][:-1]
+
+                # Colunas de texto para o sistema de recomendação
+                recommendation_text_columns = [
+                    'Qual área do ONS te interessa mais?',
+                    'O que você acha que o ONS faz?',
+                    'Depois de hoje, como você descreveria o ONS?',
+                    'Em poucas palavras, o que mais te marcou no evento?'
+                ]
+
+                # Filtrar apenas as colunas que realmente existem no df_merged
+                existing_text_columns = [col for col in recommendation_text_columns if col in df_merged.columns]
+
+                if existing_text_columns:
+                    st.subheader(f"Candidatos Recomendados para {selected_candidate_str}:")
+                    recommended_candidates = get_recommendations(
+                        df_original=df_merged,
+                        candidate_id=selected_email,
+                        text_columns=existing_text_columns,
+                        top_n=5
+                    )
+
+                    if not recommended_candidates.empty:
+                        st.dataframe(recommended_candidates)
+                    else:
+                        st.info("Nenhum candidato recomendado encontrado ou o candidato selecionado não possui informações de texto suficientes.")
+                else:
+                    st.warning("Nenhuma das colunas de texto para recomendação foi encontrada no dataframe mesclado. Verifique os nomes das colunas.")
+        else:
+            st.warning("O DataFrame mesclado está vazio ou as colunas 'Email' ou 'Nome Completo' não foram encontradas para o sistema de recomendação.")
+
+        # ------------- Fim do Sistema de Recomendação -------------
+
+
 # --- 3. Classe para o Chatbot (ChatbotComponent) ---
 class ChatbotComponent:
     def __init__(self, model_name: str = DEFAULT_MODEL):
@@ -326,9 +467,11 @@ class DashboardApp:
             layout="wide"
             #initial_sidebar_state="expanded"
         )
+
+        # Carregar os dados dos formulários (models)
         self.df1, self.df2 = get_results_forms()
 
-        # Importação das classes de análise de formulários
+        # Importação das classes de análise de formulários (Controllers)
         self.analyzer1 = FormularyAnalyzer(self.df1, "Formulário 1: Conhecendo Você")
         self.analyzer2 = FormularyAnalyzer(self.df2, "Formulário 2: Evento Foi um Prazer")
 
@@ -365,11 +508,21 @@ class DashboardApp:
         with tab1:
             self.analyzer1.display_metrics()
 
-            #! Idades dos Participantes
-            self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
-
-
             #! Escolaridade, Já conhece o ONS, O que acha da empresa, Qual área do ONS te interessa mais? Pretende cursar faculdade?
+
+
+            #! 1) Idades dos Participantes (contador)
+            self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
+     
+            # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
+            self.analyzer1.IsoTypeGridContainer()
+
+            # 3) Escolaridade vs. Área de Interesse
+            self.analyzer1.CrossHighlightContainer()
+
+            # 4) Nuvem de Palavras O que eles acham sobre o que é ONS
+            self.analyzer1.NuvemPalavras()
+
             #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
             #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
             #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")

@@ -29,9 +29,6 @@ Com esses dados, construiremos um painel de indicadores que mostra o impacto do 
 
 ## Análise de Maquina
 
-
-Analisando os dados dos formulários, percebo um conjunto de informações bastante...  **intrigante** !
-
 No  **Formulário 1 (Conhecendo Você)**  tenha uma visão sobre os talentos, suas escolaridades e as áreas de interesse no ONS, como 'Tecnologia' e 'Engenharia Elétrica' surgindo com frequência. 
 
 ![alt text](image.png)

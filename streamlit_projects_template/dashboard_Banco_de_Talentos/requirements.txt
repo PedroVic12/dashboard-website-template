@@ -1,0 +1,11 @@
+streamlit
+pandas
+matplotlib
+altair
+wordcloud
+plotly 
+gtts 
+google-generativeai 
+tabulate
+openpyxl
+scikit-learn
