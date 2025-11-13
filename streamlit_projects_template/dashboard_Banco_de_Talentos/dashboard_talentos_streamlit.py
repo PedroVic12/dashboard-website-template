@@ -322,6 +322,207 @@ class FormularyAnalyzer:
         fig = px.bar(chart_data, x=column, y='Contagem')
         st.plotly_chart(fig, use_container_width=True)
 
+
+    # -------------------------------------------------
+
+    def generate_comparison_charts(self):
+        """Gráficos comparativos entre Form1 e Form2"""
+        
+        # TIMELINE: EVOLUÇÃO DO CONHECIMENTO
+        st.subheader("📈 Timeline: Evolução da Percepção sobre o ONS")
+        
+        df_merged = pd.merge(self.df1, self.df2, on='Email', how='inner', suffixes=('_antes', '_depois'))
+        
+        timeline_data = []
+        for _, row in df_merged.iterrows():
+            timeline_data.append({'Momento': 'Antes do Evento', 'Conhecia ONS': 1 if row.get('Você já conhecia o ONS?_antes') == 'Sim' else 0})
+            timeline_data.append({'Momento': 'Depois do Evento', 'Conhecia ONS': 1 if row.get('Você já conhecia o ONS antes da visita?') == 'Sim' else 0})
+        
+        df_timeline = pd.DataFrame(timeline_data).groupby('Momento').sum().reset_index()
+        fig = px.line(df_timeline, x='Momento', y='Conhecia ONS', 
+                    markers=True, 
+                    title='Evolução: Conhecimento sobre o ONS')
+        st.plotly_chart(fig, use_container_width=True)
+
+
+    def generate_advanced_charts_form2(self):
+        """Novos gráficos para o Formulário 2"""
+        
+        # 1. SCATTER PLOT: INTERESSE X CONHECIMENTO
+        st.subheader("🎯 Análise: Interesse vs Conhecimento Prévio")
+        df_merged = pd.merge(self.df1, self.df2, on='Email', how='inner', suffixes=('_antes', '_depois'))
+        
+        scatter_data = []
+        for _, row in df_merged.iterrows():
+            conhecia = 1 if row.get('Você já conhecia o ONS antes da visita?') == 'Sim' else 0
+            quer_participar = 1 if row.get('Você tem interesse em participar de programas do ONS?') == 'Sim' else 0
+            scatter_data.append({
+                'Conhecimento Prévio': conhecia,
+                'Interesse Pós-Evento': quer_participar,
+                'Nome': row.get('Nome Completo_antes', 'Anônimo')
+            })
+        
+        df_scatter = pd.DataFrame(scatter_data)
+        fig = px.scatter(df_scatter, 
+                        x='Conhecimento Prévio', 
+                        y='Interesse Pós-Evento',
+                        size=[10]*len(df_scatter),
+                        hover_data=['Nome'],
+                        title='Relação: Conhecimento Prévio → Interesse Pós-Evento')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 2. SANKEY DIAGRAM: FLUXO DE CONVERSÃO
+        st.subheader("🌊 Fluxo de Conversão: Antes → Depois")
+        sankey_data = {
+            'source': [],
+            'target': [],
+            'value': []
+        }
+        
+        # Conhecia ONS → Quer participar
+        conhecia_sim = len(df_merged[df_merged['Você já conhecia o ONS antes da visita?'] == 'Sim'])
+        conhecia_nao = len(df_merged[df_merged['Você já conhecia o ONS antes da visita?'] == 'Não'])
+        
+        interessado_sim = len(df_merged[df_merged['Você tem interesse em participar de programas do ONS?'] == 'Sim'])
+        interessado_nao = len(df_merged[df_merged['Você tem interesse em participar de programas do ONS?'] == 'Não'])
+        
+        fig = go.Figure(data=[go.Sankey(
+            node=dict(
+                pad=15,
+                thickness=20,
+                line=dict(color="black", width=0.5),
+                label=["Conhecia ONS", "Não Conhecia", "Interesse em Participar", "Sem Interesse"],
+                color=["#4CAF50", "#FF9800", "#2196F3", "#F44336"]
+            ),
+            link=dict(
+                source=[0, 0, 1, 1],
+                target=[2, 3, 2, 3],
+                value=[conhecia_sim//2, conhecia_sim//2, conhecia_nao//2, conhecia_nao//2]
+            )
+        )])
+        fig.update_layout(title_text="Fluxo: Conhecimento Prévio → Interesse Pós-Evento", font_size=12)
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 3. RADAR CHART: PERFIL DE ENGAJAMENTO
+        st.subheader("🕸️ Radar: Perfil de Engajamento dos Candidatos")
+        categorias = ['Conhecia ONS', 'Quer Participar', 'Quer Faculdade', 'Interessado em Área']
+        valores = [
+            (self.df2['Você já conhecia o ONS antes da visita?'] == 'Sim').sum() / len(self.df2) * 100,
+            (self.df2['Você tem interesse em participar de programas do ONS?'] == 'Sim').sum() / len(self.df2) * 100,
+            (self.df1['Você pretende cursar faculdade?'] == 'Sim').sum() / len(self.df1) * 100,
+            self.df1['Qual área do ONS te interessa mais?'].notna().sum() / len(self.df1) * 100
+        ]
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=valores,
+            theta=categorias,
+            fill='toself',
+            name='Perfil Geral',
+            line_color='#4CAF50'
+        ))
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+            showlegend=True,
+            title="Perfil de Engajamento dos Candidatos (%)"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    def generate_advanced_charts_form1(self):
+        """Novos gráficos para o Formulário 1"""
+        
+        # 1. FUNIL DE INTENÇÕES EDUCACIONAIS
+        st.subheader("🎓 Funil de Intenções Educacionais")
+        funil_data = pd.DataFrame({
+            'Etapa': ['Responderam', 'Pretendem Faculdade', 'Conhecem ONS', 'Interessados em Áreas'],
+            'Quantidade': [
+                len(self.df),
+                len(self.df[self.df['Você pretende cursar faculdade?'] == 'Sim']),
+                len(self.df[self.df['Você já conhecia o ONS?'] == 'Sim']),
+                len(self.df[self.df['Qual área do ONS te interessa mais?'].notna()])
+            ]
+        })
+        fig = px.funnel(funil_data, x='Quantidade', y='Etapa', 
+                        color='Etapa',
+                        title='Funil de Engajamento dos Candidatos')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 2. MAPA DE CALOR: ESCOLARIDADE X ÁREA DE INTERESSE
+        st.subheader("🔥 Correlação: Escolaridade vs Área de Interesse")
+        if 'Escolaridade' in self.df.columns and 'Qual área do ONS te interessa mais?' in self.df.columns:
+            crosstab = pd.crosstab(
+                self.df['Escolaridade'], 
+                self.df['Qual área do ONS te interessa mais?']
+            )
+            fig = px.imshow(crosstab, 
+                            text_auto=True,
+                            aspect="auto",
+                            color_continuous_scale='Greens',
+                            title='Mapa de Calor: Escolaridade x Áreas de Interesse')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 3. SUNBURST: HIERARQUIA DE INTERESSES
+        st.subheader("☀️ Hierarquia de Interesses")
+        sunburst_data = []
+        for _, row in self.df.iterrows():
+            if pd.notna(row.get('Qual área do ONS te interessa mais?')):
+                areas = str(row['Qual área do ONS te interessa mais?']).split(';')
+                escolaridade = row.get('Escolaridade', 'Não informado')
+                for area in areas:
+                    sunburst_data.append({
+                        'Escolaridade': escolaridade,
+                        'Área': area.strip(),
+                        'Count': 1
+                    })
+        
+        if sunburst_data:
+            df_sunburst = pd.DataFrame(sunburst_data)
+            fig = px.sunburst(df_sunburst, 
+                            path=['Escolaridade', 'Área'], 
+                            values='Count',
+                            title='Distribuição Hierárquica: Escolaridade → Área de Interesse')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 4. TREEMAP: DISTRIBUIÇÃO PROPORCIONAL
+        st.subheader("📊 TreeMap: Visualização Proporcional de Interesses")
+        if sunburst_data:
+            df_tree = pd.DataFrame(sunburst_data).groupby(['Escolaridade', 'Área']).sum().reset_index()
+            fig = px.treemap(df_tree, 
+                            path=['Escolaridade', 'Área'], 
+                            values='Count',
+                            color='Count',
+                            color_continuous_scale='Viridis',
+                            title='TreeMap: Distribuição de Candidatos por Escolaridade e Interesse')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 5. GAUGE CHART: TAXA DE CONHECIMENTO DO ONS
+        st.subheader("⚡ Indicador: Taxa de Conhecimento do ONS")
+        if 'Você já conhecia o ONS?' in self.df.columns:
+            taxa_conhecimento = (self.df['Você já conhecia o ONS?'] == 'Sim').sum() / len(self.df) * 100
+            
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=taxa_conhecimento,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "% Conhecimento Prévio"},
+                delta={'reference': 50},
+                gauge={
+                    'axis': {'range': [None, 100]},
+                    'bar': {'color': "#4CAF50"},
+                    'steps': [
+                        {'range': [0, 30], 'color': "#ffebee"},
+                        {'range': [30, 70], 'color': "#fff9c4"},
+                        {'range': [70, 100], 'color': "#c8e6c9"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 80
+                    }
+                }
+            ))
+            st.plotly_chart(fig, use_container_width=True)
+
 # --- 3. Classe para o Chatbot (ChatbotComponent) ---
 class ChatbotComponent:
     def __init__(self, model_name: str = DEFAULT_MODEL):
@@ -491,6 +692,9 @@ class DashboardApp:
 
         with tab1:
             self.analyzer1.display_metrics()
+            self.analyzer1.generate_age_distribution_chart()
+            self.generate_advanced_charts_form1()
+
 
             #! Escolaridade, Já conhece o ONS, O que acha da empresa, Qual área do ONS te interessa mais? Pretende cursar faculdade?
 
