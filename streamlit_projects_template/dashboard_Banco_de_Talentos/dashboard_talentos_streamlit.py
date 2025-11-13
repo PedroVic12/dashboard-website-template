@@ -356,8 +356,8 @@ class FormularyAnalyzer:
                 recommendation_text_columns = [
                     'Qual área do ONS te interessa mais?',
                     'O que você acha que o ONS faz?',
-                    'Depois de hoje, como você descreveria o ONS?',
-                    'Em poucas palavras, o que mais te marcou no evento?'
+                    #'Depois de hoje, como você descreveria o ONS?',
+                    #'Em poucas palavras, o que mais te marcou no evento?'
                 ]
 
                 # Filtrar apenas as colunas que realmente existem no df_merged
@@ -396,6 +396,13 @@ class FormularyAnalyzer:
         # ------------- Fim do Sistema de Recomendação -------------
 
 
+    def BarChart(self, df, tittle):
+        st.subheader(tittle)
+        chart_data = df.value_counts().reset_index()
+        chart_data.columns = [column, 'Contagem']
+        fig = px.bar(chart_data, x=column, y='Contagem')
+        st.plotly_chart(fig, use_container_width=True)
+
 # --- 3. Classe para o Chatbot (ChatbotComponent) ---
 class ChatbotComponent:
     def __init__(self, model_name: str = DEFAULT_MODEL):
@@ -411,6 +418,10 @@ class ChatbotComponent:
             st.session_state.current_audio_key = None
         if 'last_processed_user_message' not in st.session_state:
             st.session_state.last_processed_user_message = None
+
+
+        
+        self.PROMPT_RH = "me de os 5 melhores candidatos que tem a faixa de idade de 18 a 25 anos, que se interessa no programa de estagio ou jovem aprendiz do ONS e se interessa na área adminstrativa e tecnologia e me de as duas tabelas separadas "
 
     def display_chatbot(self):
         st.subheader("Chatbot ONS Inspira (Powered by Gemini)")
@@ -514,7 +525,7 @@ class DashboardApp:
 
         # Botão de link para o Google
         with col1:
-            st.link_button("Site Dashboard Template", "https://www.dashboard-moderno.streamlit.app/")
+            st.link_button("Site Dashboard Template", "https://dashboard-moderno.streamlit.app/")
 
         # Botão de link para o Streamlit
         with col2:
@@ -552,19 +563,22 @@ class DashboardApp:
 
             #! 1) Idades dos Participantes (contador)
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
-     
+
+            # separando um container com tabela e grafico um do lado do outro
+            col1, col2 = st.columns(2)
+            with col1:
+                st.dataframe(self.df1["Nome", "Qual área do ONS te interessa mais?"])
+                self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
+            with col2:
+                self.analyzer1.BarChart(self.df1, "Distribuição por Escolaridade")
+
+
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
             self.analyzer1.MarkBarChartWidget(type_chart="pizza")
-            
-            # gemini
-            self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
-
+        
             # 3) Escolaridade vs. Área de Interesse
             self.analyzer1.CrossHighlightContainer()
             
-            # gemini
-            self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
-            self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
 
             # 4) Nuvem de Palavras O que eles acham sobre o que é ONS
             #self.analyzer1.NuvemPalavras()
@@ -578,7 +592,9 @@ class DashboardApp:
 
 
             # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
-            self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse")
+            self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse dos candidatos")
+            self.analyzer2.BarChart(self.df2, "Áreas de Interesse dos candidatos")
+
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
             #self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
@@ -590,7 +606,7 @@ class DashboardApp:
             # 5) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
             self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
 
-            self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
+            #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
 
 
         with tab_chatbot:
