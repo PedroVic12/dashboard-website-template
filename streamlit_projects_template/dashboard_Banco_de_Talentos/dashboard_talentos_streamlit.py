@@ -69,7 +69,7 @@ def get_initial_chatbot_history_with_context(df1: pd.DataFrame, df2: pd.DataFram
 #! Custom CSS for styling the tabs, supporting dark and light modes
 from styles import custom_css
 
-#st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(custom_css, unsafe_allow_html=True)
 
 
 ### ---- Classes de Componentes 
@@ -692,7 +692,6 @@ class DashboardApp:
 
         with tab1:
             self.analyzer1.display_metrics()
-            self.analyzer1.generate_age_distribution_chart()
             self.generate_advanced_charts_form1()
 
 
