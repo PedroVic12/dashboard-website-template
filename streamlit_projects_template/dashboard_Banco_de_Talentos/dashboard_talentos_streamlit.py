@@ -567,7 +567,7 @@ class DashboardApp:
             # separando um container com tabela e grafico um do lado do outro
             col1, col2 = st.columns(2)
             with col1:
-                st.dataframe(self.df1["Nome", "Qual área do ONS te interessa mais?"])
+                st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]], use_container_width=True)
                 self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
             with col2:
                 self.analyzer1.BarChart(self.df1, "Distribuição por Escolaridade")
