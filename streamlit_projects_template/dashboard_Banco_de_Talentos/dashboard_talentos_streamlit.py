@@ -692,7 +692,7 @@ class DashboardApp:
 
         with tab1:
             self.analyzer1.display_metrics()
-            self.generate_advanced_charts_form1()
+            #self.generate_advanced_charts_form1()
 
 
             #! Escolaridade, Já conhece o ONS, O que acha da empresa, Qual área do ONS te interessa mais? Pretende cursar faculdade?
