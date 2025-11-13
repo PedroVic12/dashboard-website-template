@@ -6,7 +6,8 @@ DEFAULT_MODEL = "gemini-2.5-flash" # Use a known current model
 
 # --- API Key Configuration (MUST BE SET VIA STREAMLIT SECRETS) ---
 try:
-    API_KEY = "AIzaSyB5K1qepdH3tIbjAoDl8Tnf8ZvwezZx0gg"
+   #API_KEY = "AIzaSyB5K1qepdH3tIbjAoDl8Tnf8ZvwezZx0gg"
+    API_KEY = "AIzaSyAUint0zauhQjDzwqleEa0hoVJb2PXYf0o"
 
     genai.configure(api_key=API_KEY)
 

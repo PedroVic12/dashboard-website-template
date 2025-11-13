@@ -164,16 +164,16 @@ class FormularyAnalyzer:
         self.form_name = form_name
 
     def display_metrics(self):
-        st.subheader(f"Métricas Gerais do {self.form_name}")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total de Linhas", self.df.shape[0])
-        col2.metric("Total de Colunas", self.df.shape[1])       
-        # Adicione mais métricas conforme necessário
-        st.write(self.df)
-        #st.write(self.df.info())
-        #st.write(self.df.describe())
-        #st.write(self.df.columns)
-        #st.write(self.df.dtypes)
+        with st.expander(f"Métricas Gerais do {self.form_name}")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total de Linhas", self.df.shape[0])
+            col2.metric("Total de Colunas", self.df.shape[1])       
+            # Adicione mais métricas conforme necessário
+            st.write(self.df)
+            #st.write(self.df.info())
+            #st.write(self.df.describe())
+            #st.write(self.df.columns)
+            #st.write(self.df.dtypes)
 
     def generate_age_distribution_chart(self, name_column: str, dob_column: str, title: str):
         st.subheader(title)
@@ -383,7 +383,9 @@ class FormularyAnalyzer:
                             title=f'Similarity Scores dos Candidatos Recomendados para {selected_candidate_str}',
                             labels={'Nome Completo': 'Candidato', 'Similaridade': 'Pontuação de Similaridade'}
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        
+                        #st.plotly_chart(fig, use_container_width=True)
                         
 
                     else:
@@ -569,7 +571,7 @@ class DashboardApp:
             with col1:
                 st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]])
             with col2:
-                self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
+                #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
                 self.analyzer1.BarChart(self.df1, "Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
 
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
