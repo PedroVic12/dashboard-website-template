@@ -457,29 +457,26 @@ class DashboardApp:
     def run(self):
         #self.AppBar()
 
-        col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top", border=False, width="stretch")
+        col1, col2 = st.columns([1, 3], gap="medium")
         with col1:
             try:
-                import os
-
-                # No início do seu arquivo, após os imports
                 def get_asset_path(filename):
                     """Retorna o caminho absoluto para um arquivo de asset"""
                     current_dir = os.path.dirname(os.path.abspath(__file__))
                     return os.path.join(current_dir, "assets", "imgs", filename)
 
-                st.image(get_asset_path("Logo_ONSInspira.png"),width= 200)
+                st.image(get_asset_path("Logo_ONSInspira.png"), width=200)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
-
         with col2:
-            st.title("Dashboard ONS Inspira 2025")
-            st.subheader("Análise de Candidatos para o Banco de talentos ")
-            st.markdown("Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.")
-
-        with col3:
-            st.write(" ")
+            st.markdown("""
+            <div style='display: flex; flex-direction: column; justify-content: center; height: 100%;'>
+                <h1 style='margin: 0;'>Dashboard ONS Inspira 2025</h1>
+                <h3 style='margin: 5px 0 10px 0;'>Análise de Candidatos para o Banco de talentos</h3>
+                <p style='margin: 0;'>Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
         # Inicializar st.session_state.messages com o histórico contextualizado
         if 'messages' not in st.session_state:
