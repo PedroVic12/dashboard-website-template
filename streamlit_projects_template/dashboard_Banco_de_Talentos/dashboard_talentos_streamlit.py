@@ -465,7 +465,7 @@ class DashboardApp:
                     current_dir = os.path.dirname(os.path.abspath(__file__))
                     return os.path.join(current_dir, "assets", "imgs", filename)
 
-                st.image(get_asset_path("Logo_ONSInspira.png"), width=200)
+                st.image(get_asset_path("Logo_ONSInspira.png"), width=300)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
