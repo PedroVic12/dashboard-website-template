@@ -544,7 +544,7 @@ class DashboardApp:
         col1, col2 = st.columns(2)
         with col1:
             try:
-                st.image("../assets/imgs/Logo_ONSInspira_1 1.png", use_column_width=True)
+                st.image("s./assets/imgs/Logo_ONSInspira.png", use_column_width=True)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
@@ -560,8 +560,6 @@ class DashboardApp:
             st.session_state.messages = initial_history_with_context
 
         tab1, tab2, tab_chatbot = st.tabs([
-            #"Formulário 1: Conhecendo Você", 
-            #"Formulário 2: Evento Foi um Prazer", 
             "Formulário 1: Conhecendo os candidatos",
             "Formulário 2: Agradecimento após evento WorkShop",
             "Chatbot AI"
@@ -586,7 +584,7 @@ class DashboardApp:
 
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
             self.analyzer1.MarkBarChartWidget(
-                #type_chart="pizza"
+                type_chart="pizza"
             )
         
             # 3) Escolaridade vs. Área de Interesse
