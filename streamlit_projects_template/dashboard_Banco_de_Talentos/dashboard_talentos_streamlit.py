@@ -591,8 +591,8 @@ class DashboardApp:
 
 
             # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
-            self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse dos candidatos")
-            self.analyzer2.BarChart(self.df2, "Áreas de Interesse dos candidatos")
+            #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse dos candidatos")
+            #self.analyzer2.BarChart(self.df2, "Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 2)")
 
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
