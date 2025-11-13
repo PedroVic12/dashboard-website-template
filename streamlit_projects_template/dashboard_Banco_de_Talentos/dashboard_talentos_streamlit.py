@@ -543,8 +543,10 @@ class DashboardApp:
 
         col1, col2 = st.columns(2)
         with col1:
-            #st.image("./assets/imgs/Logo_ONSInspira_1 1.png", use_column_width=True)
-            pass
+            try:
+                st.image("../assets/imgs/Logo_ONSInspira_1 1.png", use_column_width=True)
+            except Exception as e:
+                st.error(f"Erro ao carregar a imagem: {e}")
 
 
         with col2:
@@ -574,7 +576,7 @@ class DashboardApp:
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
 
             # separando um container com tabela e grafico um do lado do outro
-            st.write("Áreas de Interesse dos candidatos (Form. 1)")
+            st.subheader("Áreas de Interesse dos candidatos (Form. 1)")
             col1, col2 = st.columns(2)
             with col1:
                 st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]])
@@ -583,7 +585,9 @@ class DashboardApp:
                 self.analyzer1.BarChart(self.df1, "Qual área do ONS te interessa mais?", "Nome do candidato X Área de interesse")
 
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
-            self.analyzer1.MarkBarChartWidget(type_chart="pizza")
+            self.analyzer1.MarkBarChartWidget(
+                #type_chart="pizza"
+            )
         
             # 3) Escolaridade vs. Área de Interesse
             self.analyzer1.CrossHighlightContainer()
