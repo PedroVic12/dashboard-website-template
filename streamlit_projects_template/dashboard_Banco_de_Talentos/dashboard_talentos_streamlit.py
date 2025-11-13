@@ -315,11 +315,45 @@ class FormularyAnalyzer:
         # ------------- Fim do Sistema de Recomendação -------------
 
 
-    def BarChart(self, df, column, tittle):
-        st.subheader(tittle)
-        chart_data = df[column].value_counts().reset_index()
+    def BarChart(self, df, column, title):
+        st.subheader(title)
+        
+        # Processa os dados para lidar com múltiplos valores separados por ';'
+        all_values = []
+        for value in df[column].dropna():
+            # Se o valor contém ';', separa em múltiplos valores
+            if ';' in str(value):
+                all_values.extend([v.strip() for v in str(value).split(';') if v.strip()])
+            else:
+                all_values.append(str(value).strip())
+        
+        # Cria um DataFrame com as contagens
+        chart_data = pd.Series(all_values).value_counts().reset_index()
         chart_data.columns = [column, 'Contagem']
-        fig = px.bar(chart_data, x=column, y='Contagem')
+        
+        # Ordena por contagem (do maior para o menor)
+        chart_data = chart_data.sort_values('Contagem', ascending=False)
+        
+        # Cria o gráfico de barras
+        fig = px.bar(chart_data, 
+                    x=column, 
+                    y='Contagem',
+                    text='Contagem',
+                    color='Contagem',
+                    color_continuous_scale='Viridis')
+        
+        # Melhora a formatação
+        fig.update_traces(texttemplate='%{text}', textposition='outside')
+        fig.update_layout(
+            xaxis_title=column,
+            yaxis_title='Quantidade',
+            showlegend=False,
+            margin=dict(t=30, b=100)  # Ajusta as margens para o título e rótulos
+        )
+        
+        # Ajusta o tamanho da fonte dos rótulos do eixo X para melhor legibilidade
+        fig.update_xaxes(tickangle=-45, tickfont=dict(size=10))
+        
         st.plotly_chart(fig, use_container_width=True)
 
 
