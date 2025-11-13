@@ -543,7 +543,7 @@ class DashboardApp:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.image("assets/imgs/Logo_ONSInspira_1 1.png", use_column_width=True)
+            st.image("./assets/imgs/Logo_ONSInspira_1 1.png", use_column_width=True)
 
         with col2:
             st.title("Dashboard ONS Inspira 2025")
