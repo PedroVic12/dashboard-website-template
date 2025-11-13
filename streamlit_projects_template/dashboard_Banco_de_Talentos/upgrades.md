@@ -31,7 +31,7 @@ Com esses dados, construiremos um painel de indicadores que mostra o impacto do 
 “Olá, sou Pedro Victor Veras, venho apresentar os próximos passos do projeto ONS INSPIRA, onde nossa iniciativa busca aproximar o ONS das comunidades, escolas e transformando os jovens de todo Brasil em futuros talentos no mercado de trabalho”
 
 00:11 – 00:35
-“O primeiro passo é engajar os jovens, em parceria com o Instituto META, levando palestras e oficinas práticas que mostrem como o ONS funciona e como a energia elétrica move o país. A ideia é inspirar e preparar esses jovens para que se tornem futuros estagiários e aprendizes.”
+“O primeiro passo é engajar os jovens, em parceria com o Instituto META, levando palestras que mostrem como o ONS funciona e como a energia elétrica move o país., onde a ideia é inspirar e preparar esses jovens para que se tornem futuros estagiários e aprendizes.”
 
 00:36 – 01:00
 “O segundo passo é expandir o projeto para as demais localidades do ONS. A proposta é replicar esse modelo em outras regionais, adaptando as ações conforme a realidade de cada comunidade. Assim, o programa se torna escalável e sustentável, fortalecendo o vínculo do ONS com o território nacional.”
@@ -49,9 +49,7 @@ Tom: visionário e confiante, como porta-voz do futuro do projeto.
 
 Gestos: sutis, abertos; enfatize “engajar”, “expandir”, “ampliar”.
 
-Cenário: fundo azul do slide ou banner do INSPIRA.
-
-Ritmo: 150–160 palavras por minuto (pausas curtas entre os 3 passos).
+Cenário: fundo azul/verde do ONS INSPIRA.
 
 Voz: tom médio, final com leve sorriso e energia positiva.
 
