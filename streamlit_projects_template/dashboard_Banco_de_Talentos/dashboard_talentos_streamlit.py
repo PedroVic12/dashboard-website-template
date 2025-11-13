@@ -525,7 +525,7 @@ class DashboardApp:
 
     def run(self):
         st.markdown(custom_css, unsafe_allow_html=True)
-        self.AppBar()
+        #self.AppBar()
 
         st.title("Dashboard ONS Inspira 2025")
         st.subheader("Análise de Candidatos para o Banco de talentos ")
@@ -540,7 +540,7 @@ class DashboardApp:
             #"Formulário 1: Conhecendo Você", 
             #"Formulário 2: Evento Foi um Prazer", 
             "Formulário 1: Conhecendo os candidatos",
-            "Formulário 2: Agradecimento pelo evento WorkShop",
+            "Formulário 2: Agradecimento após evento WorkShop",
             "Chatbot AI"
         ])
 
@@ -562,7 +562,7 @@ class DashboardApp:
             #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
 
             # 4) Nuvem de Palavras O que eles acham sobre o que é ONS
-            self.analyzer1.NuvemPalavras()
+            #self.analyzer1.NuvemPalavras()
 
         with tab2:
             self.analyzer2.display_metrics()
@@ -575,7 +575,7 @@ class DashboardApp:
             #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse")
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
-            self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
+            #self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
 
             # 4) Você já conhecia o ONS antes da visita? Você tem interesse em participar de programas do ONS?
             self.analyzer2.generate_chart1("Você já conhecia o ONS antes da visita?", "Conhecimento Prévio do ONS")
