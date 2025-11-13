@@ -28,8 +28,8 @@ def get_results_forms():
         "assets"
     )
     
-    file_path1 = os.path.join(base_path, "ONS Inspira__Conhecendo você👋.xlsx")
-    file_path2 = os.path.join(base_path, "ONS Inspira__Foi um prazer 🤝.xlsx")
+    file_path1 = os.path.join(base_path, "ONS Inspira__Conhecendo você.xlsx")
+    file_path2 = os.path.join(base_path, "ONS Inspira__Foi um prazer.xlsx")
 
     df1 = pd.read_excel(file_path1)
     df2 = pd.read_excel(file_path2)
