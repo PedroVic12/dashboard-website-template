@@ -587,13 +587,10 @@ class DashboardApp:
 
             #! Já conhece o ONS antes da Visita? Como descreve a empresa ONS? Qual área do ONS te interessa mais? Pretende pretenda participar dos processos seletivos? Quer fazer faculdade?
             # 1) Já conhece o ONS antes da Visita? Como descreve a empresa ONS?
-            #    
-
-
+            
             # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
             #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse dos candidatos")
             #self.analyzer2.BarChart(self.df2, "Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 2)")
-
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
             #self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
@@ -605,7 +602,7 @@ class DashboardApp:
             # 5) O que mais te marcou no evento ONS Inspira? Quer receber informacoes sobre futuros processos seletivos?
             self.analyzer2.SistemaRecomendaWidget(pd.merge(self.df1, self.df2, how='outer'))
 
-            #self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
+            self.analyzer2.generate_chart2("Você tem interesse em participar de programas do ONS?", "Interesse em Programas ONS")
 
 
         with tab_chatbot:
