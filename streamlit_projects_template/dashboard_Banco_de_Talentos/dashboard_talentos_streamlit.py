@@ -396,9 +396,9 @@ class FormularyAnalyzer:
         # ------------- Fim do Sistema de Recomendação -------------
 
 
-    def BarChart(self, df, tittle):
+    def BarChart(self, df, column, tittle):
         st.subheader(tittle)
-        chart_data = df.value_counts().reset_index()
+        chart_data = df[column].value_counts().reset_index()
         chart_data.columns = [column, 'Contagem']
         fig = px.bar(chart_data, x=column, y='Contagem')
         st.plotly_chart(fig, use_container_width=True)
@@ -567,11 +567,10 @@ class DashboardApp:
             # separando um container com tabela e grafico um do lado do outro
             col1, col2 = st.columns(2)
             with col1:
-                st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]], use_container_width=True)
-                self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
+                st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]])
             with col2:
-                self.analyzer1.BarChart(self.df1, "Distribuição por Escolaridade")
-
+                self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
+                self.analyzer1.BarChart(self.df1, "Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
 
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
             self.analyzer1.MarkBarChartWidget(type_chart="pizza")
