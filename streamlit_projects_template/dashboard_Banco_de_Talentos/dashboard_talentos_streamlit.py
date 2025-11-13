@@ -457,7 +457,7 @@ class DashboardApp:
     def run(self):
         #self.AppBar()
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2, gap="small", vertical_alignment="top", border=True, width="stretch")
         with col1:
             try:
                 import os
