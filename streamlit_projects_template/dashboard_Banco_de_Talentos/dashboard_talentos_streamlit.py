@@ -66,10 +66,10 @@ def get_initial_chatbot_history_with_context(df1: pd.DataFrame, df2: pd.DataFram
 
 ### -----------------------------------------
 
-# Custom CSS for styling the tabs, supporting dark and light modes
+#! Custom CSS for styling the tabs, supporting dark and light modes
 from styles import custom_css
 
-st.markdown(custom_css, unsafe_allow_html=True)
+#st.markdown(custom_css, unsafe_allow_html=True)
 
 
 ### ---- Classes de Componentes 
@@ -468,7 +468,7 @@ class DashboardApp:
                     current_dir = os.path.dirname(os.path.abspath(__file__))
                     return os.path.join(current_dir, "assets", "imgs", filename)
 
-                st.image(get_asset_path("Logo_ONSInspira.png"), use_column_width=True)
+                st.image(get_asset_path("Logo_ONSInspira.png"), use_column_width=False)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
