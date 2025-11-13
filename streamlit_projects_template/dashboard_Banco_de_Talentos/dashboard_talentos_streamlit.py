@@ -457,7 +457,7 @@ class DashboardApp:
     def run(self):
         #self.AppBar()
 
-        col1, col2 = st.columns(2, gap="small", vertical_alignment="top", border=True, width="stretch")
+        col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top", border=False, width="stretch")
         with col1:
             try:
                 import os
@@ -477,6 +477,9 @@ class DashboardApp:
             st.title("Dashboard ONS Inspira 2025")
             st.subheader("Análise de Candidatos para o Banco de talentos ")
             st.markdown("Este dashboard apresenta uma análise detalhada das informações coletadas para a criação de um Banco de Talentos para o programa ONS Inspira, auxiliando o RH na seleção de futuros colaboradores.")
+
+        with col3:
+            st.write(" ")
 
         # Inicializar st.session_state.messages com o histórico contextualizado
         if 'messages' not in st.session_state:
