@@ -544,7 +544,7 @@ class DashboardApp:
         col1, col2 = st.columns(2)
         with col1:
             try:
-                st.image("./assets/imgs/Logo_ONSInspira.png", use_column_width=True)
+                st.image("assets/imgs/Logo_ONSInspira.png", use_column_width=True)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
