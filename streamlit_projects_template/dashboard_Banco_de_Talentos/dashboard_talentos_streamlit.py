@@ -460,7 +460,15 @@ class DashboardApp:
         col1, col2 = st.columns(2)
         with col1:
             try:
-                st.image("assets/imgs/Logo_ONSInspira.png", use_column_width=True)
+                import os
+
+                # No início do seu arquivo, após os imports
+                def get_asset_path(filename):
+                    """Retorna o caminho absoluto para um arquivo de asset"""
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    return os.path.join(current_dir, "assets", "imgs", filename)
+
+                st.image(get_asset_path("Logo_ONSInspira.png"), use_column_width=True)
             except Exception as e:
                 st.error(f"Erro ao carregar a imagem: {e}")
 
