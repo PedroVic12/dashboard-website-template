@@ -701,13 +701,13 @@ class DashboardApp:
             self.analyzer1.generate_age_distribution_chart("Nome", "Data de Nascimento", "Distribuição de Idade dos Participantes")
 
             # separando um container com tabela e grafico um do lado do outro
-            st.subheader("Áreas de Interesse dos candidatos (Form. 1)")
+            st.subheader("Áreas de Interesse dos Candidatos")
             col1, col2 = st.columns(2)
             with col1:
                 st.dataframe(self.df1[["Nome", "Qual área do ONS te interessa mais?"]])
             with col2:
                 #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse dos candidatos (Form. 1)")
-                self.analyzer1.BarChart(self.df1, "Qual área do ONS te interessa mais?", "Nome do candidato X Área de interesse")
+                self.analyzer1.BarChart(self.df1, "Qual área do ONS te interessa mais?", "Nome do Candidato X Área de interesse")
 
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
             self.analyzer1.MarkBarChartWidget(
