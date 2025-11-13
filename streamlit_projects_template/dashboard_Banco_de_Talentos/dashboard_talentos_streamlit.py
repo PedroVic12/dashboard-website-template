@@ -215,11 +215,12 @@ class FormularyAnalyzer:
             expanded_data = self.df[column].str.split(';').explode().str.strip()
             chart_data = expanded_data.value_counts().reset_index()
             chart_data.columns = [column, 'Contagem']
-            st.bar_chart(chart_data, x=column, y='Contagem')
+            fig = px.pie(chart_data, names=column, values='Contagem')
         else:
             chart_data = self.df[column].value_counts().reset_index()
             chart_data.columns = [column, 'Contagem']
-            st.bar_chart(chart_data, x=column, y='Contagem')
+            fig = px.pie(chart_data, names=column, values='Contagem')
+        st.plotly_chart(fig, use_container_width=True)
 
     def generate_chart2(self, column: str, title: str):
         st.subheader(title)
@@ -554,12 +555,16 @@ class DashboardApp:
      
             # 2) Pretendo cursar faculdade? (IsoTypeGridWidget)
             self.analyzer1.MarkBarChartWidget(type_chart="pizza")
-            #self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
+            
+            # gemini
+            self.analyzer1.generate_chart2("Você pretende cursar faculdade?", "Intenção de Cursar Faculdade")
 
             # 3) Escolaridade vs. Área de Interesse
             self.analyzer1.CrossHighlightContainer()
-            #self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
-            #self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
+            
+            # gemini
+            self.analyzer1.generate_chart1("Escolaridade", "Distribuição por Escolaridade")
+            self.analyzer1.generate_chart1("Qual área do ONS te interessa mais?", "Áreas de Interesse (Form. 1)")
 
             # 4) Nuvem de Palavras O que eles acham sobre o que é ONS
             #self.analyzer1.NuvemPalavras()
@@ -569,10 +574,11 @@ class DashboardApp:
 
             #! Já conhece o ONS antes da Visita? Como descreve a empresa ONS? Qual área do ONS te interessa mais? Pretende pretenda participar dos processos seletivos? Quer fazer faculdade?
             # 1) Já conhece o ONS antes da Visita? Como descreve a empresa ONS?
-            #st.
+            #    
+
 
             # 2) Nome do candidato vs Qual área do ONS te interessa mais? vs Pretende cursar faculdade?
-            #self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse")
+            self.analyzer2.generate_chart1("Quais áreas do ONS vc mais se interessou?", "Áreas de Interesse")
 
             # 3) Nuvem de Palavras - O que mais te marcou no evento?
             #self.analyzer2.NuvemPalavras("Em poucas palavras, o que mais te marcou no evento?")
