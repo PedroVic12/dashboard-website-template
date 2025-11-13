@@ -164,7 +164,7 @@ class FormularyAnalyzer:
         self.form_name = form_name
 
     def display_metrics(self):
-        with st.expander(f"Métricas Gerais do {self.form_name}")
+        with st.expander(f"Métricas Gerais do {self.form_name}"):
             col1, col2, col3 = st.columns(3)
             col1.metric("Total de Linhas", self.df.shape[0])
             col2.metric("Total de Colunas", self.df.shape[1])       
