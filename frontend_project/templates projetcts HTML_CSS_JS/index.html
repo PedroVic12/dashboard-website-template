@@ -16,13 +16,38 @@
 <body class="bg-gray-100">
   <div id="root"></div>
 
-  <!-- Páginas -->
-  <script type="text/babel" src="Home.jsx"></script>
-  <script type="text/babel" src="Dashboard.jsx"></script>
-  <script type="text/babel" src="Habits.jsx"></script>
-
-  <!-- Inicializador -->
   <script type="text/babel">
+    // Componente Home
+    const HomePage = () => {
+      return (
+        <div>
+          <h1 className="text-3xl font-bold text-blue-600">🏠 Bem-vindo à Home</h1>
+          <p className="mt-2 text-gray-700">Essa é a página inicial.</p>
+        </div>
+      );
+    };
+
+    // Componente Dashboard
+    const DashboardPage = () => {
+      return (
+        <div>
+          <h1 className="text-3xl font-bold text-green-600">📊 Dashboard</h1>
+          <p className="mt-2 text-gray-700">Aqui vai o resumo das tarefas ou estatísticas.</p>
+        </div>
+      );
+    };
+
+    // Componente Habits
+    const HabitsPage = () => {
+      return (
+        <div>
+          <h1 className="text-3xl font-bold text-purple-600">🔥 Habits Tracker</h1>
+          <p className="mt-2 text-gray-700">Gerencie seus hábitos aqui.</p>
+        </div>
+      );
+    };
+
+    // App Principal
     const App = () => {
       const [page, setPage] = React.useState("home");
 
