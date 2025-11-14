@@ -240,3 +240,85 @@ body {
 .text-purple-600 { color: #9333ea; }
 .mt-2 { margin-top: 0.5rem; }
 .text-gray-700 { color: #374151; }
+
+/* To-Do List */
+.todo-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+#todo-input {
+  flex-grow: 1;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+
+.todo-form button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.todo-form button:hover {
+  background-color: #0056b3;
+}
+
+.todo-list {
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+}
+
+.todo-item span {
+  flex-grow: 1;
+  margin-left: 0.75rem;
+}
+
+.todo-item.completed span {
+  text-decoration: line-through;
+  color: var(--secondary-color);
+}
+
+.todo-item .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.todo-item .actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.todo-item .actions .delete-btn {
+  color: #dc3545;
+}
+.todo-item .actions .delete-btn:hover {
+  color: #a71d2a;
+}
+.todo-item .actions .complete-btn {
+  color: #28a745;
+}
+.todo-item .actions .complete-btn:hover {
+  color: #1e7e34;
+}
+
