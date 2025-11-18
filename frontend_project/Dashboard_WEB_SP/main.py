@@ -40,12 +40,13 @@ log = logging.getLogger("rich")
 # Cria a instância da aplicação Flask
 app = create_app()
 NUM_PORTA = 7777
+localhost = "0.0.0.0"
 
 if __name__ == "__main__":
 
         # Usa o logger do Rich para a mensagem de início
-    log.info(f"Iniciando servidor Flask em [link=http://127.0.0.1:{NUM_PORTA}]http://127.0.0.1:{NUM_PORTA}[/link]", extra={"markup": True})
+    log.info(f"Iniciando servidor Flask em [link=http://{localhost}:{NUM_PORTA}]http://{localhost}:{NUM_PORTA}[/link]", extra={"markup": True})
 
     # O log do Werkzeug (servidor) também será formatado pelo RichHandler
-    app.run(debug=True, port=NUM_PORTA, host='127.0.0.1')
+    app.run(debug=True, port=NUM_PORTA, host=localhost)
 
