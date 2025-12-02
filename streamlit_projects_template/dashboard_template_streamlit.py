@@ -1,14 +1,11 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from typing import Dict, List, Any, Optional, Union, Tuple
-from abc import ABC, abstractmethod
-from io import BytesIO
-import base64
-
+from typing import Dict, List, Any, Union, Tuple
+from datetime import datetime
+import io
 
 # ====================================
 # MODEL LAYER
@@ -24,21 +21,56 @@ class DataModel:
         self.load_data()
     
     def load_data(self) -> pd.DataFrame:
-        """Carrega dados de diferentes fontes"""
+        """Carrega dados de diferentes fontes e realiza limpeza inicial."""
         try:
             if isinstance(self.data_source, str):
-                self.df = pd.read_csv(self.data_source)
+                if self.data_source.endswith('.csv'):
+                    self.df = pd.read_csv(self.data_source)
+                elif self.data_source.endswith(('.xlsx', '.xls')):
+                    self.df = pd.read_excel(self.data_source, engine='openpyxl')
+                else:
+                    # Assume CSV se não tiver extensão clara
+                    self.df = pd.read_csv(self.data_source)
+            
             elif isinstance(self.data_source, pd.DataFrame):
                 self.df = self.data_source.copy()
+            
+            elif hasattr(self.data_source, 'name'):
+                file_name = self.data_source.name
+                if file_name.endswith('.csv'):
+                    self.df = pd.read_csv(self.data_source)
+                elif file_name.endswith(('.xlsx', '.xls')):
+                    self.df = pd.read_excel(self.data_source, engine='openpyxl')
+                else:
+                    raise ValueError("Formato não suportado. Use .csv ou .xlsx.")
             else:
                 raise ValueError("Fonte de dados inválida")
             
+            # Limpeza de colunas
+            self.df = self.df.loc[:, ~self.df.columns.str.contains('^Unnamed')]
+            self.df.columns = [str(col).strip() for col in self.df.columns]
+            
+            # Detecta e converte colunas de data
+            self._auto_detect_dates()
+            
             self.df_filtered = self.df.copy()
             return self.df
-            
+        
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
             return pd.DataFrame()
+    
+    def _auto_detect_dates(self):
+        """Detecta e converte automaticamente colunas de data."""
+        for col in self.df.columns:
+            if self.df[col].dtype == 'object':
+                try:
+                    # Tenta converter para datetime
+                    converted = pd.to_datetime(self.df[col], errors='coerce')
+                    if converted.notna().sum() / len(self.df) > 0.5:
+                        self.df[col] = converted
+                except:
+                    pass
     
     def apply_filters(self, filters: Dict[str, Any]) -> pd.DataFrame:
         """Aplica filtros aos dados"""
@@ -51,10 +83,9 @@ class DataModel:
             if values and column in df_temp.columns:
                 if isinstance(values, (list, tuple)):
                     if len(values) == 2 and all(isinstance(v, (int, float)) for v in values):
-                        # Range numérico
-                        df_temp = df_temp[(df_temp[column] >= values[0]) & (df_temp[column] <= values[1])]
+                        condition = (df_temp[column] >= values[0]) & (df_temp[column] <= values[1])
+                        df_temp = df_temp[condition | df_temp[column].isna()]
                     else:
-                        # Lista de valores categóricos
                         df_temp = df_temp[df_temp[column].isin(values)]
         
         self.df_filtered = df_temp
@@ -66,209 +97,154 @@ class DataModel:
             return {"numeric": [], "categorical": [], "datetime": []}
         
         return {
-            "numeric": self.df.select_dtypes(include=[np.number]).columns.tolist(),
+            "numeric": self.df.select_dtypes(include=np.number).columns.tolist(),
             "categorical": self.df.select_dtypes(include=['object', 'category']).columns.tolist(),
             "datetime": self.df.select_dtypes(include=['datetime64']).columns.tolist()
         }
     
     def calculate_metrics(self) -> Dict[str, Any]:
-        """Calcula métricas dos dados filtrados"""
+        """Calcula métricas gerais e detalhadas dos dados filtrados"""
         if self.df_filtered is None or self.df_filtered.empty:
             return {}
         
         metrics = {
             "total_records": len(self.df_filtered),
-            "total_columns": len(self.df_filtered.columns)
+            "total_columns": len(self.df_filtered.columns),
+            "missing_values": self.df_filtered.isna().sum().sum(),
+            "numeric_details": {}
         }
         
         column_info = self.get_column_info()
         
-        # Métricas numéricas
         for col in column_info["numeric"]:
             if col in self.df_filtered.columns:
-                metrics.update({
-                    f"{col}_mean": self.df_filtered[col].mean(),
-                    f"{col}_median": self.df_filtered[col].median(),
-                    f"{col}_max": self.df_filtered[col].max(),
-                    f"{col}_min": self.df_filtered[col].min()
-                })
-        
-        # Métricas categóricas
-        for col in column_info["categorical"]:
-            if col in self.df_filtered.columns and not self.df_filtered[col].empty:
-                mode_value = self.df_filtered[col].mode()
-                metrics[f"{col}_most_frequent"] = mode_value[0] if len(mode_value) > 0 else "N/A"
+                metrics["numeric_details"][col] = {
+                    "Média": self.df_filtered[col].mean(),
+                    "Mediana": self.df_filtered[col].median(),
+                    "Máximo": self.df_filtered[col].max(),
+                    "Mínimo": self.df_filtered[col].min(),
+                    "Desvio Padrão": self.df_filtered[col].std()
+                }
         
         return metrics
+    
+    def calculate_grouped_metrics(self, group_by_col: str, agg_col: str, agg_func: str) -> pd.DataFrame:
+        """Calcula métricas agrupadas"""
+        if self.df_filtered is None or self.df_filtered.empty:
+            return pd.DataFrame()
+        
+        try:
+            grouped_df = self.df_filtered.groupby(group_by_col)[agg_col].agg(agg_func).reset_index()
+            return grouped_df.sort_values(by=agg_col, ascending=False)
+        except Exception:
+            return pd.DataFrame()
+    
+    def export_to_csv(self) -> bytes:
+        """Exporta dados filtrados para CSV"""
+        return self.df_filtered.to_csv(index=False).encode('utf-8')
+    
+    def export_to_excel(self) -> bytes:
+        """Exporta dados filtrados para Excel"""
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            self.df_filtered.to_excel(writer, index=False, sheet_name='Dados')
+        return output.getvalue()
 
 
 # ====================================
-# MATPLOTLIB CHART GENERATOR
+# CHART GENERATOR LAYER
 # ====================================
 
 class MatplotlibChartGenerator:
-    """Gerador de gráficos usando Matplotlib"""
+    """Gerador de gráficos usando Matplotlib e Seaborn"""
     
-    def __init__(self, df: pd.DataFrame, style: str = 'seaborn-v0_8'):
+    def __init__(self, df: pd.DataFrame, style: str = 'seaborn-v0_8-whitegrid'):
         self.df = df
-        self.style = style
-        self._setup_style()
+        plt.style.use(style)
+        sns.set_palette("viridis")
     
-    def _setup_style(self):
-        """Configura o estilo dos gráficos"""
-        try:
-            plt.style.use(self.style)
-        except:
-            plt.style.use('default')
-        
-        sns.set_palette("husl")
-        plt.rcParams.update({
-            'figure.figsize': (10, 6),
-            'font.size': 10,
-            'axes.titlesize': 12,
-            'axes.labelsize': 10,
-            'xtick.labelsize': 9,
-            'ytick.labelsize': 9,
-            'legend.fontsize': 9
-        })
+    def _setup_chart(self, title: str, figsize: Tuple = (10, 6)) -> Tuple[plt.Figure, plt.Axes]:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.set_title(title, fontsize=14, weight='bold')
+        return fig, ax
     
-    def create_line_chart(self, x_column: str, y_column: str, 
-                         title: str = None, color: str = 'blue') -> plt.Figure:
-        """Cria gráfico de linhas"""
-        fig, ax = plt.subplots(figsize=(10, 6))
+    def create_line_chart(self, x_column: str, y_column: str, color_column: str = None) -> plt.Figure:
+        """Cria um gráfico de linhas"""
+        x_label = x_column.replace("_", " ").title() if x_column != '[Índice]' else 'Índice'
+        title = f'{y_column.replace("_", " ").title()} por {x_label}'
+        if color_column:
+            title += f' (por {color_column.title()})'
         
-        # Ordenar dados por x para linha contínua
-        df_sorted = self.df.sort_values(x_column)
+        fig, ax = self._setup_chart(title)
         
-        ax.plot(df_sorted[x_column], df_sorted[y_column], 
-               color=color, linewidth=2, marker='o', markersize=4)
+        df_plot = self.df.copy()
+        if x_column == '[Índice]':
+            df_plot['[Índice]'] = df_plot.index
         
-        ax.set_xlabel(x_column.replace('_', ' ').title())
+        sns.lineplot(data=df_plot, x=x_column, y=y_column, hue=color_column, marker='o', ax=ax)
+        
+        ax.set_xlabel(x_label)
         ax.set_ylabel(y_column.replace('_', ' ').title())
-        ax.set_title(title or f'{y_column.replace("_", " ").title()} por {x_column.replace("_", " ").title()}')
-        ax.grid(True, alpha=0.3)
-        
-        plt.xticks(rotation=45)
+        plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
-        
         return fig
     
-    def create_bar_chart(self, x_column: str, y_column: str = None,
-                        title: str = None, horizontal: bool = False,
-                        top_n: int = 10) -> plt.Figure:
-        """Cria gráfico de barras"""
-        fig, ax = plt.subplots(figsize=(10, 6))
+    def create_bar_chart(self, x_column: str, y_column: str = None, color_column: str = None, horizontal: bool = False) -> plt.Figure:
+        """Cria um gráfico de barras"""
+        fig, ax = self._setup_chart("")
         
         if y_column:
-            # Gráfico agregado
-            data = self.df.groupby(x_column)[y_column].mean().nlargest(top_n)
+            title = f'Média de {y_column.title()} por {x_column.title()}'
+            if color_column:
+                title += f' (por {color_column.title()})'
+            ax.set_title(title, fontsize=14, weight='bold')
+            sns.barplot(data=self.df, x=x_column, y=y_column, hue=color_column, ax=ax, orient='v' if not horizontal else 'h')
         else:
-            # Gráfico de contagem
-            data = self.df[x_column].value_counts().head(top_n)
+            title = f'Contagem de {x_column.title()}'
+            if color_column:
+                title += f' (por {color_column.title()})'
+            ax.set_title(title, fontsize=14, weight='bold')
+            sns.countplot(data=self.df, x=x_column if not horizontal else None, y=x_column if horizontal else None, hue=color_column, ax=ax)
         
-        if horizontal:
-            bars = ax.barh(range(len(data)), data.values)
-            ax.set_yticks(range(len(data)))
-            ax.set_yticklabels(data.index)
-            ax.set_xlabel(y_column.replace('_', ' ').title() if y_column else 'Contagem')
-            ax.set_ylabel(x_column.replace('_', ' ').title())
-        else:
-            bars = ax.bar(range(len(data)), data.values)
-            ax.set_xticks(range(len(data)))
-            ax.set_xticklabels(data.index, rotation=45, ha='right')
-            ax.set_ylabel(y_column.replace('_', ' ').title() if y_column else 'Contagem')
-            ax.set_xlabel(x_column.replace('_', ' ').title())
-        
-        # Colorir barras
-        colors = plt.cm.viridis(np.linspace(0, 1, len(data)))
-        for bar, color in zip(bars, colors):
-            bar.set_color(color)
-        
-        ax.set_title(title or f'Top {top_n} {x_column.replace("_", " ").title()}')
+        if not horizontal:
+            plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
-        
         return fig
     
-    def create_pie_chart(self, column: str, title: str = None,
-                        top_n: int = 8, others_threshold: float = 0.02) -> plt.Figure:
-        """Cria gráfico de pizza"""
-        fig, ax = plt.subplots(figsize=(10, 8))
-        
-        # Calcular proporções
+    def create_pie_chart(self, column: str, top_n: int = 7) -> plt.Figure:
+        title = f'Distribuição de {column.replace("_", " ").title()}'
+        fig, ax = self._setup_chart(title)
         data = self.df[column].value_counts()
-        total = data.sum()
         
-        # Agrupar valores pequenos em "Outros"
-        small_values = data[data / total < others_threshold]
-        if len(small_values) > 0:
-            data = data[data / total >= others_threshold]
-            if len(small_values) > 1:
-                data['Outros'] = small_values.sum()
-        
-        # Limitar ao top_n
-        data = data.head(top_n)
-        
-        # Criar gráfico
-        colors = plt.cm.Set3(np.linspace(0, 1, len(data)))
-        wedges, texts, autotexts = ax.pie(data.values, labels=data.index, autopct='%1.1f%%',
-                                         colors=colors, startangle=90)
-        
-        # Melhorar legibilidade
-        for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_fontweight('bold')
-        
-        ax.set_title(title or f'Distribuição de {column.replace("_", " ").title()}')
-        plt.tight_layout()
-        
-        return fig
-    
-    def create_scatter_plot(self, x_column: str, y_column: str,
-                           color_column: str = None, size_column: str = None,
-                           title: str = None) -> plt.Figure:
-        """Cria gráfico de dispersão"""
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        x = self.df[x_column]
-        y = self.df[y_column]
-        
-        # Configurar cores
-        if color_column and color_column in self.df.columns:
-            c = self.df[color_column]
-            if self.df[color_column].dtype in ['object', 'category']:
-                # Categórico
-                unique_vals = self.df[color_column].unique()
-                colors = plt.cm.tab10(np.linspace(0, 1, len(unique_vals)))
-                color_map = dict(zip(unique_vals, colors))
-                c = [color_map[val] for val in c]
-            scatter = ax.scatter(x, y, c=c, cmap='viridis', alpha=0.7)
-            if self.df[color_column].dtype not in ['object', 'category']:
-                plt.colorbar(scatter, label=color_column.replace('_', ' ').title())
+        if len(data) > top_n:
+            top_data = data.head(top_n)
+            others = pd.Series([data.iloc[top_n:].sum()], index=['Outros'])
+            data_to_plot = pd.concat([top_data, others])
         else:
-            ax.scatter(x, y, alpha=0.7)
+            data_to_plot = data
         
-        # Configurar tamanhos
-        if size_column and size_column in self.df.columns:
-            sizes = self.df[size_column]
-            sizes = (sizes - sizes.min()) / (sizes.max() - sizes.min()) * 100 + 20
-        
-        ax.set_xlabel(x_column.replace('_', ' ').title())
-        ax.set_ylabel(y_column.replace('_', ' ').title())
-        ax.set_title(title or f'{y_column.replace("_", " ").title()} vs {x_column.replace("_", " ").title()}')
-        ax.grid(True, alpha=0.3)
-        
+        ax.pie(data_to_plot, labels=data_to_plot.index, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')
         plt.tight_layout()
         return fig
     
-    def figure_to_base64(self, fig: plt.Figure) -> str:
-        """Converte figura matplotlib para base64"""
-        buffer = BytesIO()
-        fig.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
-        buffer.seek(0)
-        image_base64 = base64.b64encode(buffer.getvalue()).decode()
-        buffer.close()
-        plt.close(fig)
-        return image_base64
+    def create_scatter_plot(self, x_column: str, y_column: str, color_column: str = None) -> plt.Figure:
+        title = f'{y_column.title()} vs {x_column.title()}'
+        fig, ax = self._setup_chart(title)
+        sns.scatterplot(data=self.df, x=x_column, y=y_column, hue=color_column, palette="viridis", ax=ax, alpha=0.7)
+        ax.set_xlabel(x_column.title())
+        ax.set_ylabel(y_column.title())
+        plt.tight_layout()
+        return fig
+    
+    def create_histogram(self, column: str, bins: int = 30) -> plt.Figure:
+        title = f'Distribuição de {column.title()}'
+        fig, ax = self._setup_chart(title)
+        ax.hist(self.df[column].dropna(), bins=bins, color='steelblue', edgecolor='black', alpha=0.7)
+        ax.set_xlabel(column.title())
+        ax.set_ylabel('Frequência')
+        plt.tight_layout()
+        return fig
 
 
 # ====================================
@@ -278,172 +254,193 @@ class MatplotlibChartGenerator:
 class DashboardView:
     """View para interface do dashboard"""
     
-    def __init__(self):
-        self._setup_page()
-    
-    def _setup_page(self):
-        """Configura a página Streamlit"""
-        st.set_page_config(
-            page_title="Dashboard MVC - Análise de Dados",
-            page_icon="📊",
-            layout="wide"
-        )
-    
     def render_header(self, title: str, description: str = None):
-        """Renderiza o cabeçalho"""
         st.title(title)
         if description:
             st.markdown(description)
     
     def render_sidebar_filters(self, df: pd.DataFrame, column_info: Dict[str, List[str]]) -> Dict[str, Any]:
-        """Renderiza filtros na sidebar"""
         st.sidebar.header("🔍 Filtros")
+        
+        # Info do dataset
+        with st.sidebar.expander("📊 Info do Dataset", expanded=True):
+            st.metric("Registos Totais", f"{len(df):,}")
+            st.metric("Colunas", len(df.columns))
+            st.metric("Valores Nulos", f"{df.isna().sum().sum():,}")
         
         filters = {}
         
-        # Informações do dataset
-        st.sidebar.info(f"**Registros:** {len(df)}\n**Colunas:** {len(df.columns)}")
-        
         # Filtros categóricos
-        for col in column_info["categorical"]:
-            if df[col].nunique() <= 50:  # Só criar filtro se não tiver muitos valores únicos
-                unique_values = sorted(df[col].dropna().unique())
-                selected = st.sidebar.multiselect(
-                    col.replace('_', ' ').title(),
-                    unique_values,
-                    default=unique_values
-                )
-                filters[col] = selected
+        if column_info["categorical"]:
+            st.sidebar.subheader("📋 Filtros Categóricos")
+            for col in column_info["categorical"]:
+                if 1 < df[col].nunique() <= 50:
+                    unique_vals = df[col].unique()
+                    nan_values = [v for v in unique_vals if pd.isna(v)]
+                    non_nan_values = sorted([v for v in unique_vals if pd.notna(v)])
+                    final_options = nan_values + non_nan_values
+                    filters[col] = st.sidebar.multiselect(
+                        col.title(), 
+                        final_options, 
+                        default=final_options,
+                        key=f"filter_{col}"
+                    )
         
         # Filtros numéricos
-        for col in column_info["numeric"]:
-            min_val = float(df[col].min())
-            max_val = float(df[col].max())
-            if min_val != max_val:  # Só criar slider se houver variação
-                selected_range = st.sidebar.slider(
-                    col.replace('_', ' ').title(),
-                    min_value=min_val,
-                    max_value=max_val,
-                    value=(min_val, max_val)
-                )
-                filters[col] = selected_range
+        if column_info["numeric"]:
+            st.sidebar.subheader("🔢 Filtros Numéricos")
+            for col in column_info["numeric"]:
+                if not df[col].dropna().empty:
+                    min_val, max_val = float(df[col].dropna().min()), float(df[col].dropna().max())
+                    if min_val < max_val:
+                        filters[col] = st.sidebar.slider(
+                            col.title(), 
+                            min_val, 
+                            max_val, 
+                            (min_val, max_val),
+                            key=f"slider_{col}"
+                        )
         
-        # Botão reset
-        if st.sidebar.button("🔄 Resetar Filtros"):
+        if st.sidebar.button("🔄 Reiniciar Filtros"):
             st.rerun()
         
         return filters
     
-    def render_metrics(self, metrics: Dict[str, Any]):
-        """Renderiza métricas em cards"""
-        st.subheader("📈 Métricas Principais")
+    def render_metrics(self, metrics: Dict[str, Any], column_info: Dict[str, List[str]]):
+        st.divider()
+        st.subheader("📈 Métricas dos Dados Filtrados")
         
-        if not metrics:
+        if not metrics or "total_records" not in metrics:
             st.warning("Nenhuma métrica disponível.")
             return
         
-        # Organizar métricas por tipo
-        basic_metrics = {}
-        detailed_metrics = {}
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total de Registos", f"{metrics.get('total_records', 0):,}")
+        col2.metric("Total de Colunas", f"{metrics.get('total_columns', 0):,}")
+        col3.metric("Valores Ausentes", f"{metrics.get('missing_values', 0):,}")
         
-        for key, value in metrics.items():
-            if key in ["total_records", "total_columns"]:
-                basic_metrics[key] = value
-            elif "_most_frequent" in key or "_mean" in key or "_max" in key:
-                detailed_metrics[key] = value
+        if column_info["numeric"]:
+            st.divider()
+            st.markdown("### 📊 Estatísticas Descritivas")
+            
+            selected_col = st.selectbox(
+                "Selecione uma coluna numérica:", 
+                column_info["numeric"],
+                key="metric_col_select"
+            )
+            
+            if selected_col and selected_col in metrics.get("numeric_details", {}):
+                details = metrics["numeric_details"][selected_col]
+                cols = st.columns(5)
+                cols[0].metric("Mínimo", f"{details.get('Mínimo', 0):.2f}")
+                cols[1].metric("Média", f"{details.get('Média', 0):.2f}")
+                cols[2].metric("Mediana", f"{details.get('Mediana', 0):.2f}")
+                cols[3].metric("Máximo", f"{details.get('Máximo', 0):.2f}")
+                cols[4].metric("Desvio Padrão", f"{details.get('Desvio Padrão', 0):.2f}")
+    
+    def render_export_section(self, model: 'DataModel'):
+        """Renderiza opções de exportação"""
+        st.sidebar.divider()
+        st.sidebar.subheader("💾 Exportar Dados")
         
-        # Renderizar métricas básicas
-        if basic_metrics:
-            cols = st.columns(len(basic_metrics))
-            for i, (key, value) in enumerate(basic_metrics.items()):
-                with cols[i]:
-                    formatted_value = f"{value:,}" if isinstance(value, (int, float)) else str(value)
-                    st.metric(key.replace('_', ' ').title(), formatted_value)
+        col1, col2 = st.sidebar.columns(2)
         
-        # Renderizar métricas detalhadas se houver espaço
-        if detailed_metrics:
-            st.markdown("**Métricas Detalhadas:**")
-            cols = st.columns(min(len(detailed_metrics), 4))
-            for i, (key, value) in enumerate(list(detailed_metrics.items())[:4]):
-                with cols[i % 4]:
-                    if isinstance(value, (int, float)):
-                        formatted_value = f"{value:,.2f}" if value != int(value) else f"{int(value):,}"
-                    else:
-                        formatted_value = str(value)
-                    
-                    st.metric(
-                        key.replace('_', ' ').title(),
-                        formatted_value
-                    )
+        if col1.button("📄 CSV"):
+            csv = model.export_to_csv()
+            st.sidebar.download_button(
+                label="Download CSV",
+                data=csv,
+                file_name=f"dados_filtrados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+        
+        if col2.button("📊 Excel"):
+            excel = model.export_to_excel()
+            st.sidebar.download_button(
+                label="Download Excel",
+                data=excel,
+                file_name=f"dados_filtrados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    
+    def render_grouped_analysis_controls(self, column_info: Dict[str, List[str]]) -> Dict[str, str]:
+        st.subheader("🧩 Análise Agrupada")
+        
+        if not column_info["categorical"] or not column_info["numeric"]:
+            st.warning("Requer pelo menos uma coluna categórica e uma numérica.")
+            return {}
+        
+        cols = st.columns(3)
+        group_by_col = cols[0].selectbox("Agrupar por:", column_info["categorical"])
+        agg_col = cols[1].selectbox("Analisar:", column_info["numeric"])
+        agg_funcs = {"Média": "mean", "Soma": "sum", "Contagem": "count", "Mínimo": "min", "Máximo": "max"}
+        selected_func = cols[2].selectbox("Cálculo:", list(agg_funcs.keys()))
+        
+        return {
+            "group_by_col": group_by_col,
+            "agg_col": agg_col,
+            "agg_func": agg_funcs[selected_func]
+        }
     
     def render_chart_controls(self, column_info: Dict[str, List[str]]) -> Dict[str, Any]:
-        """Renderiza controles para seleção de gráficos"""
-        st.subheader("🎨 Configuração de Gráficos")
-        
-        col1, col2, col3, col4 = st.columns(4)
+        st.subheader("🎨 Visualizações")
         
         chart_config = {}
+        col1, col2, col3, col4 = st.columns(4)
+        
+        chart_map = {
+            "Linha": "line", 
+            "Barras": "bar", 
+            "Pizza": "pie", 
+            "Dispersão": "scatter",
+            "Histograma": "histogram"
+        }
         
         with col1:
-            chart_config["chart_type"] = st.selectbox(
-                "Tipo de Gráfico",
-                ["line", "bar", "pie", "scatter"],
-                format_func=lambda x: {
-                    "line": "📈 Linha",
-                    "bar": "📊 Barras", 
-                    "pie": "🥧 Pizza",
-                    "scatter": "🎯 Dispersão"
-                }[x]
-            )
+            selected_chart = st.selectbox("Tipo de Gráfico", list(chart_map.keys()))
+            chart_config["chart_type"] = chart_map[selected_chart]
         
         with col2:
             if chart_config["chart_type"] in ["line", "bar", "scatter"]:
-                chart_config["x_column"] = st.selectbox(
-                    "Coluna X",
-                    column_info["categorical"] + column_info["numeric"]
-                )
+                options = column_info["numeric"] + column_info["categorical"]
+                if chart_config["chart_type"] == 'line':
+                    options = ['[Índice]'] + options
+                chart_config["x_column"] = st.selectbox("Eixo X", options)
+            elif chart_config["chart_type"] == "histogram":
+                chart_config["hist_column"] = st.selectbox("Coluna", column_info["numeric"])
         
         with col3:
             if chart_config["chart_type"] in ["line", "scatter"]:
-                chart_config["y_column"] = st.selectbox(
-                    "Coluna Y", 
-                    column_info["numeric"]
-                )
+                chart_config["y_column"] = st.selectbox("Eixo Y", column_info["numeric"])
             elif chart_config["chart_type"] == "bar":
-                chart_config["y_column"] = st.selectbox(
-                    "Coluna Y (Opcional)",
-                    [""] + column_info["numeric"]
-                )
+                chart_config["y_column"] = st.selectbox("Eixo Y (opcional)", [None] + column_info["numeric"])
             elif chart_config["chart_type"] == "pie":
-                chart_config["pie_column"] = st.selectbox(
-                    "Coluna para Pizza",
-                    column_info["categorical"]
-                )
+                chart_config["pie_column"] = st.selectbox("Coluna", column_info["categorical"])
         
         with col4:
+            if chart_config["chart_type"] in ["line", "bar", "scatter"]:
+                chart_config["color_column"] = st.selectbox("Cor (opcional)", [None] + column_info["categorical"])
             if chart_config["chart_type"] == "bar":
-                chart_config["horizontal"] = st.checkbox("Horizontal")
-                chart_config["top_n"] = st.slider("Top N", 5, 20, 10)
+                chart_config["horizontal"] = st.toggle("Horizontal")
+            elif chart_config["chart_type"] == "histogram":
+                chart_config["bins"] = st.slider("Bins", 10, 100, 30)
         
         return chart_config
     
-    def render_matplotlib_chart(self, fig_base64: str, title: str = "Gráfico"):
-        """Renderiza gráfico matplotlib"""
-        if fig_base64:
-            st.markdown(f"**{title}**")
-            st.markdown(f'<img src="data:image/png;base64,{fig_base64}" style="width:100%">', 
-                       unsafe_allow_html=True)
+    def render_chart(self, fig: plt.Figure):
+        if fig:
+            # use_container_width deprecated; use width='stretch' for full-width rendering
+            st.pyplot(fig, width='stretch')
     
-    def render_data_table(self, df: pd.DataFrame):
-        """Renderiza tabela de dados"""
-        st.subheader("🗂️ Dados Detalhados")
+    def render_data_table(self, df: pd.DataFrame, title: str):
+        if df.empty:
+            st.warning("Nenhum dado para exibir.")
+            return
         
-        col1, col2 = st.columns([3, 1])
-        with col2:
-            rows_to_show = st.selectbox("Linhas:", [10, 25, 50, 100], index=1)
-        
-        st.dataframe(df.head(rows_to_show), use_container_width=True)
-        st.info(f"Mostrando {min(rows_to_show, len(df))} de {len(df)} registros")
+        with st.expander(label=title, expanded=True):
+            # use_container_width deprecated; use width='stretch' for full-width rendering
+            st.dataframe(df, width='stretch')
+            st.info(f"Mostrando {len(df)} registos.")
 
 
 # ====================================
@@ -453,133 +450,157 @@ class DashboardView:
 class DashboardController:
     """Controller principal do dashboard MVC"""
     
-    def __init__(self, data_source: Union[str, pd.DataFrame], 
-                 title: str = "Dashboard MVC", 
-                 description: str = None):
+    def __init__(self, data_source: Union[str, pd.DataFrame], title: str, description: str = None):
         self.model = DataModel(data_source)
         self.view = DashboardView()
-        self.chart_generator = None
         self.title = title
         self.description = description
-        
-        if not self.model.df.empty:
-            self.chart_generator = MatplotlibChartGenerator(self.model.df_filtered)
     
     def run(self):
-        """Executa o dashboard completo"""
+        """Executa o fluxo completo do dashboard"""
         if self.model.df is None or self.model.df.empty:
-            st.error("Não foi possível carregar os dados.")
+            st.error("Falha ao carregar os dados.")
             return
         
-        # Renderizar cabeçalho
+        # Header
         self.view.render_header(self.title, self.description)
         
-        # Obter informações das colunas
+        # Configuração
         column_info = self.model.get_column_info()
         
-        # Renderizar filtros e obter seleções
+        # Filtros e exportação
         filters = self.view.render_sidebar_filters(self.model.df, column_info)
+        self.view.render_export_section(self.model)
         
-        # Aplicar filtros
         df_filtered = self.model.apply_filters(filters)
+        metrics = self.model.calculate_metrics()
+        
+        # Tabela de dados
+        self.view.render_data_table(df_filtered, "🗂️ Dados Consolidados")
+        
+        # Métricas
+        self.view.render_metrics(metrics, column_info)
+        st.markdown("---")
         
         if df_filtered.empty:
-            st.warning("Nenhum dado corresponde aos filtros selecionados.")
+            st.warning("Nenhum dado corresponde aos filtros.")
             return
         
-        # Atualizar chart generator com dados filtrados
-        self.chart_generator = MatplotlibChartGenerator(df_filtered)
-        
-        # Calcular e renderizar métricas
-        metrics = self.model.calculate_metrics()
-        self.view.render_metrics(metrics)
+        # Análise agrupada
+        grouped_config = self.view.render_grouped_analysis_controls(column_info)
+        # grouped_config may be empty; ensure required keys exist and are truthy
+        required_keys = ("group_by_col", "agg_col", "agg_func")
+        if grouped_config and all(grouped_config.get(k) for k in required_keys):
+            grouped_df = self.model.calculate_grouped_metrics(
+                grouped_config["group_by_col"],
+                grouped_config["agg_col"],
+                grouped_config["agg_func"],
+            )
+            self.view.render_data_table(grouped_df, f"📊 Agrupado por {grouped_config['group_by_col'].title()}")
         
         st.markdown("---")
         
-        # Renderizar controles de gráfico
+        # Gráficos
+        chart_generator = MatplotlibChartGenerator(df_filtered)
         chart_config = self.view.render_chart_controls(column_info)
-        
-        # Gerar e exibir gráfico
-        self._render_selected_chart(chart_config, df_filtered)
-        
-        st.markdown("---")
-        
-        # Renderizar tabela de dados
-        self.view.render_data_table(df_filtered)
+        self._render_selected_chart(chart_config, chart_generator)
     
-    def _render_selected_chart(self, config: Dict[str, Any], df: pd.DataFrame):
+    def _render_selected_chart(self, config: Dict[str, Any], chart_generator: MatplotlibChartGenerator):
         """Renderiza o gráfico selecionado"""
-        if not config or not self.chart_generator:
-            return
-        
         try:
             chart_type = config.get("chart_type")
+            fig = None
             
+            # Ensure required keys exist and values are not None before calling chart functions
             if chart_type == "line" and config.get("x_column") and config.get("y_column"):
-                fig = self.chart_generator.create_line_chart(
-                    config["x_column"], 
-                    config["y_column"]
-                )
-                fig_base64 = self.chart_generator.figure_to_base64(fig)
-                self.view.render_matplotlib_chart(fig_base64, "Gráfico de Linha")
-            
+                fig = chart_generator.create_line_chart(config["x_column"], config["y_column"], config.get("color_column"))
             elif chart_type == "bar" and config.get("x_column"):
-                y_col = config.get("y_column") if config.get("y_column") else None
-                fig = self.chart_generator.create_bar_chart(
-                    config["x_column"],
-                    y_col,
-                    horizontal=config.get("horizontal", False),
-                    top_n=config.get("top_n", 10)
-                )
-                fig_base64 = self.chart_generator.figure_to_base64(fig)
-                self.view.render_matplotlib_chart(fig_base64, "Gráfico de Barras")
-            
+                # y_column is optional for bar (counts vs aggregated)
+                fig = chart_generator.create_bar_chart(config["x_column"], config.get("y_column"), config.get("color_column"), config.get("horizontal", False))
             elif chart_type == "pie" and config.get("pie_column"):
-                fig = self.chart_generator.create_pie_chart(config["pie_column"])
-                fig_base64 = self.chart_generator.figure_to_base64(fig)
-                self.view.render_matplotlib_chart(fig_base64, "Gráfico de Pizza")
-            
+                fig = chart_generator.create_pie_chart(config["pie_column"])
             elif chart_type == "scatter" and config.get("x_column") and config.get("y_column"):
-                fig = self.chart_generator.create_scatter_plot(
-                    config["x_column"],
-                    config["y_column"]
-                )
-                fig_base64 = self.chart_generator.figure_to_base64(fig)
-                self.view.render_matplotlib_chart(fig_base64, "Gráfico de Dispersão")
-        
+                fig = chart_generator.create_scatter_plot(config["x_column"], config["y_column"], config.get("color_column"))
+            elif chart_type == "histogram" and config.get("hist_column"):
+                fig = chart_generator.create_histogram(config["hist_column"], config.get("bins", 30))
+            
+            if fig:
+                self.view.render_chart(fig)
         except Exception as e:
-            st.error(f"Erro ao gerar gráfico: {str(e)}")
+            st.error(f"Erro ao gerar gráfico: {e}")
 
 
 # ====================================
-# FUNÇÃO DE CONVENIÊNCIA
+# ENTRY POINT
 # ====================================
 
-def create_mvc_dashboard(data_source: Union[str, pd.DataFrame], 
-                        title: str = "Dashboard MVC",
-                        description: str = None):
-    """
-    Cria um dashboard seguindo padrão MVC
-    
-    Args:
-        data_source: URL, caminho ou DataFrame
-        title: Título do dashboard
-        description: Descrição opcional
-    """
+def create_mvc_dashboard(data_source: Union[str, pd.DataFrame], title: str = "Dashboard MVC", description: str = None):
+    """Cria e executa um dashboard MVC."""
     controller = DashboardController(data_source, title, description)
     controller.run()
 
 
 # ====================================
-# EXECUÇÃO
+# EXECUTION
 # ====================================
 
 if __name__ == "__main__":
-    # Exemplo de uso com seus dados
-    data_url = "https://raw.githubusercontent.com/PedroVic12/Repopulation-With-Elite-Set/refs/heads/main/resultados%20-%20Artigo%20PIBIC/2025-09-01_resultados.csv"
-    
-    create_mvc_dashboard(
-        data_source=data_url,
-        title="🎲 Dashboard MVC - Análise de Salários",
-        description="Dashboard construído com arquitetura MVC e gráficos Matplotlib personalizáveis."
+    st.set_page_config(
+        page_title="Dashboard Analítico", 
+        page_icon="📊", 
+        layout="wide",
+        initial_sidebar_state="expanded"
     )
+    
+    st.sidebar.title("🔧 Configurações")
+    
+    # Opções de fonte de dados
+    data_source_option = st.sidebar.radio(
+        "Escolha a fonte dos dados:",
+        ("Upload de ficheiro", "URL de exemplo")
+    )
+    
+    data_source = None
+    
+    if data_source_option == "URL de exemplo":
+        url_input = st.sidebar.text_input(
+            "Cole a URL do dataset:",
+            value="https://raw.githubusercontent.com/PedroVic12/Repopulation-With-Elite-Set/refs/heads/main/src/assets/2025-09-01_resultados_IEEE_14_filtrados.csv"
+        )
+        if url_input:
+            data_source = url_input
+    else:
+        uploaded_file = st.sidebar.file_uploader(
+            "Arraste e solte ou clique para fazer upload",
+            type=["csv", "xlsx", "xls"]
+        )
+        if uploaded_file:
+            data_source = uploaded_file
+    
+    # Renderiza dashboard
+    if data_source is not None:
+        create_mvc_dashboard(
+            data_source=data_source,
+            title="📊 Dashboard Analítico Interativo",
+            description="Explore seus dados com filtros dinâmicos, visualizações e análises estatísticas."
+        )
+    else:
+        st.info("👈 Selecione uma fonte de dados na barra lateral para começar.")
+        
+        # Instruções de uso
+        with st.expander("📖 Como usar este dashboard"):
+            st.markdown("""
+            ### Funcionalidades:
+            - **Upload de Dados**: Suporta CSV e Excel
+            - **Filtros Dinâmicos**: Filtre por colunas categóricas e numéricas
+            - **Métricas Automáticas**: Estatísticas descritivas calculadas automaticamente
+            - **Análise Agrupada**: Agregue dados por categorias
+            - **Visualizações**: 5 tipos de gráficos disponíveis
+            - **Exportação**: Baixe os dados filtrados em CSV ou Excel
+            
+            ### Passos:
+            1. Faça upload de um arquivo ou use a URL de exemplo
+            2. Use os filtros na barra lateral
+            3. Explore as métricas e visualizações
+            4. Exporte os resultados se necessário
+            """)
