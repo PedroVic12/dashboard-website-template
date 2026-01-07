@@ -20,9 +20,15 @@ from google import genai
 # CONFIG
 # =========================
 
-assert os.getenv("GOOGLE_API_KEY"), "❌ GOOGLE_API_KEY não configurada"
 
-client = genai.Client()
+#assert os.getenv("GOOGLE_API_KEY"), "❌ GOOGLE_API_KEY não configurada"
+
+#API_KEY = os.getenv("GOOGLE_API_KEY")
+API_KEY = "AIzaSyCzw-DxawXX3KFnfXj6TK3UUTLh7h38Gmk"
+
+client = genai.Client(
+    api_key = API_KEY
+)
 MODEL_NAME = "gemini-3-flash-preview"
 
 PROMPT = """
