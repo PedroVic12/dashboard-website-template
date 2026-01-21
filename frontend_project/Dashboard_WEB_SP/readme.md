@@ -49,6 +49,8 @@ Sidebar Esquerda: Controles e filtros com ícones
 
 Design Responsivo: Adapta para mobile
 
+---
+
 ## Componentes Incluídos:
 📊 Cards de Estatísticas (Total de Atividades, Responsáveis)
 
