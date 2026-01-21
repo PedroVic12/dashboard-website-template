@@ -10,7 +10,7 @@
 
 - Kanban de tarefas
 
-- Matriz de SWOT
+- Matriz de Eisenhower
 
 - Lista de prós e contras (Nivel de complexibilidade Big O com algoritmo)
 
@@ -28,7 +28,19 @@
 - Persistência de dados no localStorage do ultimo upload de arquivo em memória
 
 
+## Arquitetura:
 
+- O projeto segue a arquitetura MVC e com Dockerfile com backend em Python (Flask) e frontend com HTML,CSS, JS e tailwind
+
+- main.py (servidor)
+
+- app/routes para as rotas
+
+- app/database (salva os arquivos historicos em excel e tambem gera um arquivo database.db)
+
+- app/static/JS e - app/static/css
+
+- app/templates 
 
 ### Layout Principal:
 Sidebar Esquerda: Controles e filtros com ícones
