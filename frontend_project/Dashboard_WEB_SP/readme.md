@@ -1,5 +1,34 @@
-## DASHBOARD em HTML com Tailwind e Excel
 ---
+# DASHBOARD em HTML com Tailwind e Excel
+---
+
+## Projeto Web com foco em ajudar no planejamento das atividades RJ/SP e região SECO da equipe PLC do ONS em 2026
+
+
+## Funcionalidades:
+- Import/Export de planilhas de controle em arquivos Excel
+
+- Kanban de tarefas
+
+- Matriz de SWOT
+
+- Lista de prós e contras (Nivel de complexibilidade Big O com algoritmo)
+
+- Planejamento de timeline
+
+
+- Filtros dinâmicos por aba, responsável, status
+
+- Gráficos atualizados em tempo real
+
+- Tabela com colunas redimensionáveis
+
+- Calendário interativo
+
+- Persistência de dados no localStorage do ultimo upload de arquivo em memória
+
+
+
 
 ### Layout Principal:
 Sidebar Esquerda: Controles e filtros com ícones
@@ -8,7 +37,7 @@ Sidebar Esquerda: Controles e filtros com ícones
 
 Design Responsivo: Adapta para mobile
 
-Componentes Incluídos:
+## Componentes Incluídos:
 📊 Cards de Estatísticas (Total de Atividades, Responsáveis)
 
 📈 Gráficos Interativos (Status, Ressalvas, Responsáveis)
@@ -23,7 +52,7 @@ Componentes Incluídos:
 
 📤 Botão de Exportação para Excel
 
-Características Visuais:
+## Características Visuais:
 Cores Profissionais: Azul, verde, laranja
 
 Ícones Bootstrap em todos os elementos
@@ -34,15 +63,3 @@ Loader vermelho semitransparente
 
 Design moderno com bordas arredondadas
 
-Funcionalidades:
-Upload de arquivo Excel
-
-Filtros dinâmicos por aba, responsável, status
-
-Gráficos atualizados em tempo real
-
-Tabela com colunas redimensionáveis
-
-Calendário interativo
-
-Persistência de dados no localStorage
