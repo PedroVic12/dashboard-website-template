@@ -105,7 +105,8 @@
             WrapText: (p) => <Icon {...p} path={<><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="12" y2="18"/><path d="M18 12l2 2 2-2"/></>} />,
             Close: (p) => <Icon {...p} path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />,
             Info: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>} />,
-            Link: (p) => <Icon {...p} path={<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>} />
+            Link: (p) => <Icon {...p} path={<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>} />,
+            Clock: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />
         };
 
         // --- 2. UTILITÁRIOS ---
@@ -239,12 +240,37 @@
             const efficiency = total > 0 ? Math.round((done/total)*100) : 0;
             const comRessalva = detailedActivities.filter(t => t.obs && t.obs.trim().length > 0).length;
             const uniqueResponsibles = [...new Set(detailedActivities.map(a => a.responsavel).filter(Boolean))];
-            const respStats = uniqueResponsibles.map(r => {
-                const tasks = detailedActivities.filter(a => a.responsavel === r);
-                const rDone = tasks.filter(t => (t.status||'').toLowerCase().includes('conclu')).length;
-                const rPending = tasks.length - rDone;
-                return { name: r, done: rDone, pending: rPending, total: tasks.length };
-            }).sort((a,b) => b.total - a.total);
+            const responsiblesCount = uniqueResponsibles.length;
+            
+            // Lógica de Agrupamento por Responsável (Normalizada)
+            const respStats = useMemo(() => {
+                const map = {};
+                detailedActivities.forEach(a => {
+                    const raw = a.responsavel;
+                    if (!raw) return;
+                    
+                    // Normaliza: Remove espaços, tudo minúsculo para chave
+                    const key = raw.trim().toLowerCase();
+                    
+                    // Formata Nome para Exibição
+                    let displayName = raw.trim();
+                    if (displayName === displayName.toLowerCase()) {
+                        displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+                    }
+                    
+                    if (!map[key]) {
+                        map[key] = { name: displayName, done: 0, pending: 0, total: 0 };
+                    }
+                    
+                    const isDone = (a.status||'').toLowerCase().includes('conclu');
+                    if (isDone) map[key].done++;
+                    else map[key].pending++;
+                    map[key].total++;
+                });
+                return Object.values(map).sort((a,b) => b.total - a.total);
+            }, [detailedActivities]);
+
+            const maxTotal = Math.max(...respStats.map(r => r.total), 1);
 
             return (
                 <div className="space-y-6 fade-in pb-10">
@@ -258,7 +284,32 @@
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center"><h3 className="text-sm font-bold text-slate-600 uppercase mb-6 w-full border-b pb-2">Status</h3><div className="pie-chart" style={ { background: `conic-gradient(#10b981 0% ${(done/total)*100}%, #f59e0b ${(done/total)*100}% 100%)` } }><div className="pie-center"><span>{efficiency}%</span></div></div><div className="flex gap-4 mt-6 text-xs font-medium"><span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concl.</span><span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pend.</span></div></div>
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center"><h3 className="text-sm font-bold text-slate-600 uppercase mb-6 w-full border-b pb-2">Ressalvas</h3><div className="pie-chart" style={ { background: `conic-gradient(#ef4444 0% ${(comRessalva/total)*100}%, #e2e8f0 ${(comRessalva/total)*100}% 100%)` } }><div className="pie-center"><span className="text-red-500">{comRessalva}</span></div></div><div className="flex gap-4 mt-6 text-xs font-medium"><span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div> Sim</span><span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-slate-200"></div> Não</span></div></div>
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden"><h3 className="text-sm font-bold text-slate-600 uppercase mb-4 w-full border-b pb-2">Por Responsável</h3><div className="flex-grow overflow-y-auto custom-scrollbar pr-2" style={ { maxHeight: '200px' } }>{respStats.map((r, i) => (<div key={i} className="mb-2"><div className="flex justify-between text-xs mb-1"><span className="truncate w-20 font-medium">{r.name}</span><span className="text-slate-400">{r.total}</span></div><div className="w-full h-2 bg-slate-100 rounded-full flex overflow-hidden">{r.done>0&&<div className="bg-emerald-500 h-full" style={ { width: `${(r.done/r.total)*100}%` } }></div>}{r.pending>0&&<div className="bg-amber-400 h-full" style={ { width: `${(r.pending/r.total)*100}%` } }></div>}</div></div>))}</div></div>
+                        
+                        {/* Gráfico de Barras Ajustado */}
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm col-span-1 lg:col-span-1 overflow-hidden flex flex-col">
+                            <h3 className="text-sm font-bold text-slate-600 uppercase mb-4 w-full border-b pb-2">Atividades por Responsável</h3>
+                            <div className="flex-grow overflow-visible"> 
+                                {respStats.map((r, i) => (
+                                    <div key={i} className="mb-4">
+                                        <div className="flex justify-between items-end text-xs mb-1.5">
+                                            <span className="font-bold text-slate-700 truncate mr-2" title={r.name}>{r.name}</span>
+                                            <span className="text-slate-500 font-mono">{r.total}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-50 rounded-r-full h-5 flex items-center pr-2">
+                                            <div className="h-full flex rounded-r-md overflow-hidden relative" 
+                                                 style={ { width: `${(r.total / maxTotal) * 100}%`, minWidth: '8px', transition: 'width 0.5s' } }>
+                                                {r.done > 0 && (<div className="bg-emerald-500 h-full flex items-center justify-center text-[9px] text-white font-bold leading-none" style={ { width: `${(r.done / r.total) * 100}%` } } title={`Concluído: ${r.done}`}>{r.done >= 3 && r.done}</div>)}
+                                                {r.pending > 0 && (<div className="bg-amber-400 h-full flex items-center justify-center text-[9px] text-white font-bold leading-none" style={ { width: `${(r.pending / r.total) * 100}%` } } title={`Pendente: ${r.pending}`}>{r.pending >= 3 && r.pending}</div>)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-4 mt-4 text-xs font-medium border-t pt-3 justify-center bg-slate-50/50 p-2 rounded">
+                                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-500"></div> Concluído</div>
+                                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-400"></div> Pendente</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -380,17 +431,30 @@
                             {date && <span className="text-[10px] text-slate-400 font-normal mt-1">{date.toLocaleDateString('pt-BR')}</span>}
                         </div>
                         <div className="flex-grow p-2 space-y-2 overflow-y-auto custom-scrollbar bg-slate-50/50">
-                            {tasksForDay.map((task, i) => (
-                                <div key={`plc-${i}`} className="bg-white p-2.5 rounded border border-l-4 border-l-blue-400 shadow-sm text-xs relative group cursor-pointer hover:shadow-md transition">
-                                    <div className="flex items-start gap-1.5 mb-1">
-                                        <Icons.Link className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0"/>
-                                        <span className="font-medium text-slate-700 leading-tight">{task.title || task.atividade}</span>
+                            {tasksForDay.map((task, i) => {
+                                const isDone = task.done || (task.status === 'done') || (task.status && task.status.toLowerCase().includes('conclu'));
+                                // Definindo as cores baseadas no status
+                                const borderColor = isDone ? 'border-emerald-500' : 'border-rose-400';
+                                const bgColor = isDone ? 'bg-emerald-50' : 'bg-white';
+                                const textColor = isDone ? 'text-emerald-800' : 'text-slate-700';
+                                const IconStatus = isDone ? Icons.CheckCircle : Icons.Clock; // ou Icons.AlertCircle
+
+                                return (
+                                    <div key={`plc-${i}`} className={`p-2.5 rounded border border-l-4 ${borderColor} ${bgColor} shadow-sm text-xs relative group cursor-pointer hover:shadow-md transition`}>
+                                        <div className="flex items-start gap-1.5 mb-1.5">
+                                            <div className={`mt-0.5 ${isDone ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                                <IconStatus className="w-3.5 h-3.5"/>
+                                            </div>
+                                            <span className={`font-bold ${textColor} leading-snug text-[13px]`}>{task.title || task.atividade}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-5">
+                                            <span className="text-[11px] font-medium text-slate-500 bg-white/50 px-1.5 rounded border border-slate-100 truncate max-w-[120px]">
+                                                {task.assignee || task.responsavel || 'N/A'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-center mt-1">
-                                        <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{task.assignee || task.responsavel || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {items.map(item => (
                                 <div key={item.id} draggable onDragStart={e => onDragStart(e, item, listKey)} className="bg-white p-2.5 rounded border shadow-sm text-xs relative group cursor-grab hover:border-blue-300 transition">
                                     <p className="leading-tight text-slate-700">{item.text}</p>
