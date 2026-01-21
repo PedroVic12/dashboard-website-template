@@ -425,7 +425,7 @@
                 return (
                     <div className={`p-4 rounded-xl border flex flex-col ${bg} ${color} h-full`} onDragOver={e=>e.preventDefault()} onDrop={e=>onDrop(e, listKey)}>
                         <h3 className="font-bold mb-3 uppercase text-xs tracking-wider opacity-80">{title}</h3>
-                        <div className="flex-grow space-y-2 overflow-y-auto custom-scrollbar" style={{minHeight:'100px'}}>
+                        <div className="flex-grow space-y-2 overflow-y-auto custom-scrollbar" style={ {minHeight:'100px'} }>
                             {eisenData[listKey].map(item => (
                                 <div key={item.id} draggable onDragStart={e=>onDragStart(e, item, listKey)} className="bg-white p-3 rounded shadow-sm text-sm text-slate-800 cursor-grab flex justify-between group hover:shadow-md transition">
                                     <span>{item.text}</span><button onClick={()=>removeItem(listKey, item.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Icons.Trash2 width="14"/></button>
