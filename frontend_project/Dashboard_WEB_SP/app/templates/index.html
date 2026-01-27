@@ -360,6 +360,20 @@
                     </div>
                 );
             }
+
+            if (config.type === "line") {
+                // Implementação para gráficos de linha
+                return (
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+                        <h3 className="text-sm font-bold text-slate-600 uppercase mb-6 w-full border-b pb-2">{title}</h3>
+                        <p>Gráfico de linha não implementado.</p>
+                    </div>
+                );
+
+            }
+
+
+
             return null;
         };
 
