@@ -1,0 +1,24 @@
+{
+  "kpis": [
+    { "title": "Tasks", "value": "128", "delta": "+12%", "deltaTone": "good" },
+    { "title": "In Progress", "value": "18", "delta": "-4%", "deltaTone": "bad" },
+    { "title": "Done", "value": "56", "delta": "+8%", "deltaTone": "good" },
+    { "title": "Efficiency", "value": "92%", "delta": "+1.2%", "deltaTone": "good" }
+  ],
+  "throughput": [
+    { "label": "ONS / PLC", "value": 42, "tone": "emerald" },
+    { "label": "Web / MVP", "value": 28, "tone": "indigo" },
+    { "label": "Data Science", "value": 17, "tone": "fuchsia" },
+    { "label": "IoT", "value": 9, "tone": "cyan" }
+  ],
+  "recent": [
+    { "name": "DeckBuilder AnaREDE", "status": "In Progress", "updated": "Today", "statusTone": "amber" },
+    { "name": "ProjectHub", "status": "Review", "updated": "Yesterday", "statusTone": "cyan" },
+    { "name": "Kanban UI", "status": "Done", "updated": "2d", "statusTone": "emerald" }
+  ],
+  "notifications": [
+    { "id": "n1", "title": "Deploy completed", "body": "Dashboard build succeeded.", "time": "2m", "read": false },
+    { "id": "n2", "title": "New task imported", "body": "12 tasks added from Excel.", "time": "1h", "read": false },
+    { "id": "n3", "title": "Weekly review", "body": "Remember to close the sprint.", "time": "1d", "read": true }
+  ]
+}

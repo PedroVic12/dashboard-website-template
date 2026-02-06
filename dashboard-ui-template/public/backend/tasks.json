@@ -1,0 +1,31 @@
+{
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Criar cadastro de clientes",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Pedro",
+      "due": "2026-02-10",
+      "done": false
+    },
+    {
+      "id": "t2",
+      "title": "Tela de relatórios (export CSV)",
+      "status": "in_progress",
+      "priority": "medium",
+      "assignee": "Pedro",
+      "due": "2026-02-12",
+      "done": false
+    },
+    {
+      "id": "t3",
+      "title": "Ajustar tema dark/light",
+      "status": "done",
+      "priority": "high",
+      "assignee": "Pedro",
+      "due": "2026-02-03",
+      "done": true
+    }
+  ]
+}

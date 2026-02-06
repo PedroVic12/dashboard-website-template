@@ -1,0 +1,7 @@
+{
+  "customers": [
+    { "id": "c1", "name": "Wayne Enterprises", "email": "ops@wayne.com", "plan": "Pro", "status": "active" },
+    { "id": "c2", "name": "Stark Industries", "email": "billing@stark.com", "plan": "Enterprise", "status": "active" },
+    { "id": "c3", "name": "Daily Planet", "email": "finance@planet.com", "plan": "Starter", "status": "trial" }
+  ]
+}
