@@ -763,23 +763,6 @@
             const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
             const repo = useMemo(() => new DataRepository(), []);
             const [data, setData] = useState(repo.load());
-            const [title, setTitle] = useState('Carregando...');
-
-            // Chamar o backend Rust para obter o título
-            useEffect(() => {
-                if (window.__TAURI__ && window.__TAURI__.tauri) {
-                    const { invoke } = window.__TAURI__.tauri;
-                    invoke('greet', { name: 'Dashboard' })
-                        .then(response => setTitle(response))
-                        .catch(err => {
-                            console.error("Erro ao chamar greet no Rust:", err);
-                            setTitle('Erro ao carregar título do backend');
-                        });
-                } else {
-                    console.warn("Tauri API não detectada. Rodando em modo web.");
-                    setTitle('Visão Geral (Modo Web)');
-                }
-            }, []);
 
             // Salvar no localStorage sempre que 'data' mudar
             useEffect(() => { repo.save(data); }, [data, repo]);
@@ -822,7 +805,7 @@
                             <div className="flex items-center gap-3">
                                 <button onClick={()=>setSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-slate-600"><Icons.Menu className="w-6 h-6"/></button>
                                 <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">
-                                    {title}
+                                    {currentView==='dashboard'?'Visão Geral':currentView==='plc'?'Tarefas PLC':currentView==='detailed'?'Relatório Must':currentView==='planner'?'Planner':currentView==='eisenhower'?'Matriz Eisenhower':'Prós e Contras'}
                                 </h1>
                             </div>
                             <div className="text-xs text-slate-500 font-medium bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 hidden sm:block">{Utils.getTodayString()}</div>
