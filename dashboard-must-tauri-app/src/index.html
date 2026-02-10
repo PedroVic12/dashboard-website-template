@@ -18,6 +18,9 @@
     <!-- SheetJS (Excel) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Backend Repository -->
+    <script src="src/repository.js"></script>
+
     <!-- Estilos Globais -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -377,6 +380,49 @@
             return null;
         };
 
+        const KPICard = ({ icon, title, value, color }) => {
+            const IconComponent = Icons[icon] || Icons.AlertCircle;
+            const colorClasses = {
+                indigo: 'bg-indigo-50 text-indigo-600',
+                emerald: 'bg-emerald-50 text-emerald-600',
+                blue: 'bg-blue-50 text-blue-600',
+                red: 'bg-red-50 text-red-600',
+            };
+
+            return (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">{title}</p>
+                        <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+                    </div>
+                    <div className={`p-2 rounded-lg ${colorClasses[color] || colorClasses.blue}`}>
+                        <IconComponent />
+                    </div>
+                </div>
+            );
+        };
+
+        const DashboardExtension = () => {
+            const [kpis, setKpis] = useState([]);
+
+            useEffect(() => {
+                window.backendRepository.getDashboardKpis().then(setKpis);
+            }, []);
+
+            if (kpis.length === 0) {
+                return <p className="text-slate-500">Carregando dados do backend...</p>;
+            }
+
+            return (
+                <>
+                    <h2 className="text-xl font-bold text-slate-800 mt-8 mb-4">Métricas do Backend</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {kpis.map(kpi => <KPICard key={kpi.title} {...kpi} />)}
+                    </div>
+                </>
+            );
+        };
+
         const ResizableHeader = ({ children, width, minWidth = 50, onResize }) => {
             const [isResizing, setIsResizing] = useState(false);
             const handleMouseDown = (e) => {
@@ -437,6 +483,9 @@
                         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"><div><p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Pendentes</p><p className="text-2xl font-bold text-amber-500 mt-1">{pending}</p></div><div className="bg-amber-50 p-2 rounded-lg text-amber-500"><Icons.AlertCircle/></div></div>
                         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"><div><p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Eficiência</p><p className="text-2xl font-bold text-emerald-600 mt-1">{efficiency}%</p></div><div className="bg-emerald-50 p-2 rounded-lg text-emerald-600"><Icons.BarChart/></div></div>
                     </div>
+                    
+                    <DashboardExtension />
+
                     {/* Gráficos gerados pela Factory */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <GenericChart data={detailedActivities} xKey="status" yKey="status" type="pie_status" title="Status Geral" />
