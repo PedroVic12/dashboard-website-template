@@ -207,8 +207,7 @@
                 reader.readAsBinaryString(file);
             }
 
-            async exportPLC(tasks) {
-                // Generate Excel workbook
+            exportPLC(tasks) { // 'tasks' here is actually 'filteredTasks' from the PLCTableView component
                 const ws = XLSX.utils.json_to_sheet(tasks.map(t => ({
                     'Tarefa': t.title, 'Categoria': t.category, 'Responsável': t.assignee, 
                     'Concluído': t.done ? 'Sim' : 'Não', 'Data': t.date, 'Obs': t.obs
@@ -216,31 +215,12 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Tarefas PLC");
                 
-                // Convert workbook to a binary array buffer
-                const excelBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-                const excelUint8Array = new Uint8Array(excelBuffer);
-
-                // Generate dynamic filename
+                // Generate dynamic filename with date, but for client-side download
                 const today = new Date();
                 const dateString = today.toISOString().slice(0, 10); // YYYY-MM-DD
-                const defaultFilename = `Tarefas_PLC_ONS_${dateString}.xlsx`;
+                const filename = `Tarefas_PLC_ONS_${dateString}.xlsx`;
 
-                try {
-                    // Call the Rust backend command to save the file
-                    const result = await window.__TAURI__.tauri.invoke('save_excel_file', {
-                        filename: defaultFilename,
-                        contents: Array.from(excelUint8Array) // Convert Uint8Array to plain array for IPC
-                    });
-
-                    if (result.startsWith("Arquivo salvo")) {
-                        alert(result);
-                    } else {
-                        console.log(result); // User cancelled or other message from Rust
-                    }
-                } catch (error) {
-                    console.error('Erro ao exportar o arquivo Excel:', error);
-                    alert('Ocorreu um erro ao exportar as tarefas PLC.');
-                }
+                XLSX.writeFile(wb, filename); // Use the generated filename
             }
 
             // --- Lógica Excel para Must ---
@@ -795,12 +775,18 @@
             const removeItem = (type, id) => { setPcData(prev => ({...prev, [type]: prev[type].filter(i => i.id !== id)})); };
             const List = ({ type, items, color, bg }) => {
                 const [input, setInput] = useState('');
-                return (<div className={`flex-1 p-6 rounded-xl border flex flex-col ${bg} ${color}`}><h3 className="font-bold text-lg mb-4 flex items-center gap-2">{type==='pros'?<Icons.ThumbsUp/>:<Icons.ThumbsUp className="rotate-180"/>} {type==='pros'?'Prós / Vantagens':'Contras / Desvantagens'}</h3><ul className="flex-grow space-y-3 overflow-y-auto custom-scrollbar">{items.map(item => (<li key={item.id} className="flex items-center group bg-white/60 p-3 rounded-lg shadow-sm"><div className={`w-2 h-2 rounded-full mr-3 ${type==='pros'?'bg-emerald-400':'bg-rose-400'}`}></div><span className="flex-grow text-slate-700 font-medium">{item.text}</span><button onClick={()=>removeItem(type, item.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Icons.Trash2 width="14"/></button></li>))}</ul><div className="mt-4 bg-white rounded-lg p-1 shadow-sm border border-slate-200 flex"><input className="flex-grow p-2 text-sm outline-none bg-transparent text-slate-700" placeholder="Adicionar argumento..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){addItem(type, input); setInput('');}}} /><button onClick={()=>{addItem(type, input); setInput('');}} className="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"><Icons.Plus width="16"/></button></div></div>);
+                return (<div className={`flex-1 p-6 rounded-xl border flex flex-col ${bg} ${color}`}><h3 className="font-bold text-lg mb-4 flex items-center gap-2">{type==='pros'?<Icons.ThumbsUp/>:<Icons.ThumbsUp className="rotate-180"/>} {type==='pros'?'Prós / Vantagens':'Contras / Desvantagens'}</h3><ul className="flex-grow space-y-3 overflow-y-auto custom-scrollbar">{items.map(item => (
+                    <li key={item.id} className="flex items-center group bg-white/60 p-3 rounded-lg shadow-sm">
+                        <div className={`w-2 h-2 rounded-full mr-3 ${type==='pros'?'bg-emerald-400':'bg-rose-400'}`}></div>
+                        <span className="flex-grow text-slate-700 font-medium">{item.text}</span>
+                        <button onClick={()=>removeItem(type, item.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100"><Icons.Trash2 width="14"/></button>
+                    </li>))}</ul><div className="mt-4 bg-white rounded-lg p-1 shadow-sm border border-slate-200 flex"><input className="flex-grow p-2 text-sm outline-none bg-transparent text-slate-700" placeholder="Adicionar argumento..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){addItem(type, input); setInput('');}}} /><button onClick={()=>{addItem(type, input); setInput('');}} className="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"><Icons.Plus width="16"/></button></div></div>);
             };
             return (<div className="h-full flex flex-col fade-in"><h2 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2"><Icons.ThumbsUp className="text-indigo-600"/> Análise de Decisão</h2><div className="flex-grow flex flex-col md:flex-row gap-6 overflow-y-auto pb-2"><List type="pros" items={pcData.pros} bg="bg-emerald-50 border-emerald-100" color="text-emerald-800" /><List type="cons" items={pcData.cons} bg="bg-rose-50 border-rose-100" color="text-rose-800" /></div></div>);
         };
 
-        // --- APP MAIN ---
+        // ... (rest of the code remains the same)
+
         function App() {
             const [currentView, setCurrentView] = useState('dashboard');
             const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
