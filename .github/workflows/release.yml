@@ -44,7 +44,7 @@ jobs:
         with:
           # AQUI: Aponta onde o Tauri realmente está localizado
           projectPath: dashboard-must-tauri-app
-          tagName: v__VERSION__
-          releaseName: "App v__VERSION__"
+          tagName: ${{ github.ref_name }} # Usa a tag v1.0.0 que você deu push
+          releaseName: "App ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false

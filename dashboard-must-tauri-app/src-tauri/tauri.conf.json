@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.pedrov12.dashboard-must-tauri-app",
   "build": {
+    "beforeBuildCommand": "", 
     "frontendDist": "../src"
   },
   "app": {
