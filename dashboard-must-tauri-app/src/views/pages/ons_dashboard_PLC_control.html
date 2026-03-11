@@ -820,33 +820,33 @@
         const STORAGE_KEY = 'hub_ons_unified_v1';
         const PROJECT_START = new Date(2025, 9, 1);
         const MONTHS = ['Out/25', 'Nov/25', 'Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26'];
-        const CATEGORIES = { 'Gestão': '#1e293b', 'Planejamento': '#16a34a', 'Engenharia': '#3b82f6', 'Obras': '#f59e0b' };
-        const CAT_COLORS = { 'Gestão': '#94a3b8', 'Planejamento': '#4ade80', 'Engenharia': '#60a5fa', 'Obras': '#fbbf24' };
+        const CATEGORIES = { 'Gestão de Projetos': '#1e293b', 'Planejamento Curto Prazo - PLC': '#16a34a', 'Engenharia Elétrica': '#3b82f6', 'Obras e atividades SECO': '#f59e0b' };
+        const CAT_COLORS = { 'Gestão de Projetos': '#94a3b8', 'Planejamento Curto Prazo - PLC': '#4ade80', 'Engenharia Elétrica': '#60a5fa', 'Obras e atividades SECO': '#fbbf24' };
 
-        const DEFAULT_MD = `## Geral
+        const DEFAULT_MD = `## Gestão de Projetos
 - [ ] 1.1: Kickoff do projeto __ONS
 - [ ] 1.2: Definir responsáveis __TODO
   - [ ] Nomear líder técnico __TODO
   - [ ] Revisar contratos __ONS
 
-## Engenharia
+## Engenharia Elétrica
 - [x] 2.1: Setup do repositório __DONE
 - [ ] 2.2: Integrar API Astro Core __ONS
   - [ ] Copiar rotas astro.py __WIP
   - [ ] Criar Blueprint Flask __TODO
 - [ ] 2.3: Autenticação JWT __BLOCK
 
-## Obras
+## Obras e atividades SECO
 - [ ] 3.1: Levantamento de campo __ONS
 - [ ] 3.2: Relatório topográfico __TODO
 `;
 
         const DEFAULT_TASKS = [
-            { id: 1, title: 'Kickoff & Planejamento', category: 'Gestão', startMonth: 0, duration: 1, color: '#475569', description: '', notes: '' },
-            { id: 2, title: 'Arquitetura da API', category: 'Engenharia', startMonth: 0.5, duration: 2, color: '#3b82f6', description: '', notes: '' },
-            { id: 3, title: 'Integração Astro Core', category: 'Engenharia', startMonth: 2, duration: 3, color: '#6366f1', description: '', notes: '' },
-            { id: 4, title: 'Levantamento de Campo', category: 'Obras', startMonth: 1, duration: 2.5, color: '#f59e0b', description: '', notes: '' },
-            { id: 5, title: 'Cronograma Executivo', category: 'Planejamento', startMonth: 0, duration: 4, color: '#16a34a', description: '', notes: '' },
+            { id: 1, title: 'Levantamento de Requisitos', category: 'Gestão de Projetos', startMonth: 0, duration: 1, color: '#475569', description: '', notes: '' },
+            { id: 2, title: 'Estudos de SEP e Circuitos CA', category: 'Engenharia Elétrica', startMonth: 0.5, duration: 2, color: '#3b82f6', description: '', notes: '' },
+            { id: 3, title: 'Estudos de SEP usando PandaPower e AnaRede', category: 'Engenharia Elétrica', startMonth: 2, duration: 3, color: '#6366f1', description: '', notes: '' },
+            { id: 4, title: 'MUST SP e Obras Mensal', category: 'Obras e atividades SECO', startMonth: 1, duration: 2.5, color: '#f59e0b', description: '', notes: '' },
+            { id: 5, title: 'Planjemanto inicial 2026', category: 'Planejamento Curto Prazo - PLC', startMonth: 0, duration: 4, color: '#16a34a', description: '', notes: '' },
         ];
 
         // ── Model ──
