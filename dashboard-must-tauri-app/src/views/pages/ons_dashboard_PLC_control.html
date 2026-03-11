@@ -859,7 +859,8 @@
             reset() { localStorage.removeItem(STORAGE_KEY); }
         };
 
-        // ── Markdown Parser (corrigido: qualquer # heading + sub-items com 2+ espaços) ──
+        // parseMarkdown: usado pelo ReportsModule para contar checkboxes
+        // ChecklistModule NÃO usa rebuild — preserva raw intacto
         const parseMarkdown = (md) => {
             const result = {};
             let tab = 'Geral';
@@ -873,32 +874,12 @@
                 }
                 const m = raw.match(/^(\s*)- \[([ xX])\] (.+)$/);
                 if (m) {
-                    const indent = m[1].length;
                     const checked = m[2].toLowerCase() === 'x';
-                    const text = m[3].trim();
-                    const tagM = text.match(/__([A-Z_]+)\s*$/);
-                    const tag = tagM ? tagM[1] : null;
-                    const cleanText = tag ? text.replace(/__[A-Z_]+\s*$/, '').trim() : text;
                     if (!result[tab]) result[tab] = [];
-                    result[tab].push({ checked, text: cleanText, tag, sub: indent >= 2 });
+                    result[tab].push({ checked });
                 }
             }
             return result;
-        };
-
-        const rebuildMarkdown = (parsed) => {
-            let md = '';
-            for (const t of Object.keys(parsed)) {
-                md += `## ${t}\n`;
-                for (const item of parsed[t]) {
-                    const pre = item.sub ? '  ' : '';
-                    const cb = item.checked ? '[x]' : '[ ]';
-                    const tag = item.tag ? ` __${item.tag}` : '';
-                    md += `${pre}- ${cb} ${item.text}${tag}\n`;
-                }
-                md += '\n';
-            }
-            return md.trim();
         };
 
         const calcProgress = (md) => {
@@ -1199,8 +1180,104 @@
         };
 
         // ══════════════════════════════════════════════════
-        //  CHECKLIST MODULE
+        //  CHECKLIST MODULE — raw-line approach
+        //  O MD raw é a fonte de verdade absoluta.
+        //  Toggle muda APENAS a linha exata por índice.
+        //  Nenhuma linha é perdida, nem ---,  ###, texto livre, etc.
         // ══════════════════════════════════════════════════
+
+        // Classifica cada linha do MD para renderização e navegação por abas.
+        // Retorna array de objetos { lineIdx, type, text, checked, indent, tag, tab }
+        const classifyLines = (md) => {
+            const lines = md.split('\n');
+            const result = [];
+            let currentTab = 'Geral';
+
+            lines.forEach((raw, lineIdx) => {
+                const trimmed = raw.trim();
+
+                // Cabeçalho de aba (##+ = nova aba, # e ### = heading visual dentro da aba)
+                const headingMatch = raw.match(/^(#{1,6})\s+(.+)$/);
+                if (headingMatch) {
+                    const level = headingMatch[1].length;
+                    const text = headingMatch[2].trim();
+                    if (level <= 2) {
+                        // ## ou # definem aba
+                        currentTab = text;
+                        result.push({ lineIdx, type: 'heading', level, text, tab: currentTab });
+                    } else {
+                        // ### ou mais: heading visual dentro da aba atual
+                        result.push({ lineIdx, type: 'heading', level, text, tab: currentTab });
+                    }
+                    return;
+                }
+
+                // Separador ---
+                if (/^---+$/.test(trimmed)) {
+                    result.push({ lineIdx, type: 'separator', tab: currentTab });
+                    return;
+                }
+
+                // Checkbox item: "- [ ]" ou "- [x]" (com qualquer indentação)
+                const cbMatch = raw.match(/^(\s*)- \[( |x|X)\] (.*)$/);
+                if (cbMatch) {
+                    const indent = cbMatch[1].length;
+                    const checked = cbMatch[2].toLowerCase() === 'x';
+                    const rest = cbMatch[3];
+                    // Extrai __TAG opcional no final
+                    const tagMatch = rest.match(/__([A-Z_]+)\s*$/);
+                    const tag = tagMatch ? tagMatch[1] : null;
+                    const text = tag ? rest.replace(/__[A-Z_]+\s*$/, '').trim() : rest.trim();
+                    result.push({ lineIdx, type: 'checkbox', checked, text, tag, indent, sub: indent >= 2, tab: currentTab });
+                    return;
+                }
+
+                // Lista simples sem checkbox: "- texto"
+                const listMatch = raw.match(/^(\s*)- (.+)$/);
+                if (listMatch) {
+                    result.push({ lineIdx, type: 'list', text: listMatch[2].trim(), indent: listMatch[1].length, tab: currentTab });
+                    return;
+                }
+
+                // Linha vazia
+                if (!trimmed) {
+                    result.push({ lineIdx, type: 'blank', tab: currentTab });
+                    return;
+                }
+
+                // Texto livre
+                result.push({ lineIdx, type: 'text', text: trimmed, tab: currentTab });
+            });
+
+            return result;
+        };
+
+        // Toggle no raw: inverte [ ] <-> [x] NA LINHA EXATA pelo lineIdx
+        const toggleLineInRaw = (raw, lineIdx) => {
+            const lines = raw.split('\n');
+            const line = lines[lineIdx];
+            if (/- \[ \]/.test(line)) lines[lineIdx] = line.replace('- [ ]', '- [x]');
+            else if (/- \[x\]/i.test(line)) lines[lineIdx] = line.replace(/- \[x\]/i, '- [ ]');
+            return lines.join('\n');
+        };
+
+        // Lista de abas únicas preservando ordem de aparição
+        const getTabsFromLines = (lines) => {
+            const seen = new Set();
+            const tabs = [];
+            lines.forEach(l => {
+                if (l.tab && !seen.has(l.tab)) { seen.add(l.tab); tabs.push(l.tab); }
+            });
+            return tabs.length ? tabs : ['Geral'];
+        };
+
+        // Progresso de uma aba: conta só checkboxes
+        const tabProgress = (lines, tab) => {
+            const items = lines.filter(l => l.type === 'checkbox' && l.tab === tab);
+            if (!items.length) return 0;
+            return Math.round(items.filter(i => i.checked).length / items.length * 100);
+        };
+
         const ChecklistModule = ({ markdown, onSave }) => {
             const snack = useSnack();
             const [rawMd, setRawMd] = useState(markdown);
@@ -1210,21 +1287,28 @@
 
             useEffect(() => { setRawMd(markdown); }, [markdown]);
 
-            const parsed = useMemo(() => parseMarkdown(rawMd), [rawMd]);
-            const tabs = Object.keys(parsed);
+            // Classifica todas as linhas — operação leve, memo em rawMd
+            const allLines = useMemo(() => classifyLines(rawMd), [rawMd]);
+            const tabs = useMemo(() => getTabsFromLines(allLines), [allLines]);
             const safeTab = Math.min(activeTab, tabs.length - 1);
 
-            const progress = (tab) => {
-                const items = parsed[tab] || [];
-                if (!items.length) return 0;
-                return Math.round((items.filter(i => i.checked).length / items.length) * 100);
-            };
+            // Linhas visiveis na aba ativa (exceto linhas heading que definem a aba em si no level <=2)
+            const visibleLines = useMemo(() =>
+                allLines.filter(l => {
+                    if (l.tab !== tabs[safeTab]) return false;
+                    // Ocultar o heading de nível 1-2 que define a aba (já exibido como título da tab)
+                    if (l.type === 'heading' && l.level <= 2 && l.text === tabs[safeTab]) return false;
+                    return true;
+                }),
+                [allLines, tabs, safeTab]);
 
-            const toggle = (tabName, idx) => {
-                const updated = { ...parsed };
-                updated[tabName] = updated[tabName].map((item, i) => i === idx ? { ...item, checked: !item.checked } : item);
-                const newMd = rebuildMarkdown(updated);
-                setRawMd(newMd); onSave(newMd);
+            const pct = tabProgress(allLines, tabs[safeTab]);
+
+            // Toggle: modifica SOMENTE a linha pelo lineIdx no raw
+            const toggle = (lineIdx) => {
+                const newMd = toggleLineInRaw(rawMd, lineIdx);
+                setRawMd(newMd);
+                onSave(newMd);
             };
 
             const handleEditorChange = (val) => { setRawMd(val); onSave(val); };
@@ -1236,39 +1320,43 @@
                 snack('Markdown baixado.', 'success');
             };
 
+            // Export Excel: só itens checkbox (preserva info)
             const exportExcel = () => {
-                const rows = [['Aba', 'Sub-tarefa', 'Concluído', 'Tag']];
-                for (const tab of tabs) {
-                    for (const item of (parsed[tab] || [])) {
-                        rows.push([tab, (item.sub ? '  ' : '') + item.text, item.checked ? 'Sim' : 'Não', item.tag || '']);
-                    }
-                }
+                const rows = [['Aba', 'Texto', 'Concluído', 'Sub-item', 'Tag', 'Linha Original']];
+                allLines.filter(l => l.type === 'checkbox').forEach(l => {
+                    rows.push([l.tab, l.text, l.checked ? 'Sim' : 'Não', l.sub ? 'Sim' : 'Não', l.tag || '', l.lineIdx + 1]);
+                });
                 const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
-                ws['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 12 }, { wch: 10 }];
+                ws['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
                 XLSX.utils.book_append_sheet(wb, ws, 'Checklist');
                 XLSX.writeFile(wb, `checklist_ons_${new Date().toISOString().split('T')[0]}.xlsx`);
                 snack('Excel exportado!', 'success');
             };
 
+            // Import: .md preserva tudo; .xlsx só atualiza checked das linhas que batem por texto+aba
             const importFile = (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
-                if (file.name.endsWith('.md') || file.name.endsWith('.txt')) {
-                    reader.onload = ev => { const txt = ev.target.result; setRawMd(txt); onSave(txt); snack('Markdown importado!', 'success'); };
+                if (file.name.match(/\.(md|txt)$/i)) {
+                    reader.onload = ev => { setRawMd(ev.target.result); onSave(ev.target.result); snack('Markdown importado!', 'success'); };
                     reader.readAsText(file);
                 } else {
                     reader.onload = ev => {
                         try {
                             const wb = XLSX.read(ev.target.result, { type: 'binary' });
-                            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
-                            const byTab = {};
-                            for (const r of rows.slice(1)) {
-                                const tab = String(r[0] || 'Geral').trim(), text = String(r[1] || '').trim();
-                                if (!text) continue;
-                                if (!byTab[tab]) byTab[tab] = [];
-                                byTab[tab].push({ checked: String(r[2] || '').toLowerCase() === 'sim', text: text.trim(), tag: r[3] ? String(r[3]).toUpperCase() : null, sub: text.startsWith('  ') });
-                            }
-                            const newMd = rebuildMarkdown(byTab); setRawMd(newMd); onSave(newMd);
+                            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }).slice(1);
+                            // Atualiza só checkboxes que existem no raw pelo número da linha
+                            let lines = rawMd.split('\n');
+                            rows.forEach(r => {
+                                const lineNum = parseInt(r[5]) - 1;
+                                if (!isNaN(lineNum) && lines[lineNum]) {
+                                    const checked = String(r[2] || '').toLowerCase() === 'sim';
+                                    if (checked) lines[lineNum] = lines[lineNum].replace(/- \[ \]/, '- [x]');
+                                    else lines[lineNum] = lines[lineNum].replace(/- \[x\]/i, '- [ ]');
+                                }
+                            });
+                            const newMd = lines.join('\n');
+                            setRawMd(newMd); onSave(newMd);
                             snack('Excel importado!', 'success');
                         } catch (err) { snack('Erro: ' + err.message, 'error'); }
                     };
@@ -1277,12 +1365,53 @@
                 e.target.value = '';
             };
 
+            // Render de uma linha classificada no viewer
+            const renderLine = (l, idx) => {
+                if (l.type === 'separator') return (
+                    <div key={idx} style={{ margin: '10px 16px', borderTop: '1px solid var(--border)' }} />
+                );
+                if (l.type === 'blank') return (
+                    <div key={idx} style={{ height: 6 }} />
+                );
+                if (l.type === 'heading') {
+                    const sizes = { 3: 14, 4: 13, 5: 12, 6: 11 };
+                    return (
+                        <div key={idx} style={{ padding: '12px 16px 4px', fontSize: sizes[l.level] || 13, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: l.level >= 4 ? 'uppercase' : 'none', borderBottom: l.level <= 3 ? '1px solid var(--border)' : 'none', marginBottom: l.level <= 3 ? 4 : 0 }}>
+                            {l.text}
+                        </div>
+                    );
+                }
+                if (l.type === 'list') return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', paddingLeft: 16 + l.indent * 6, color: 'var(--muted)', fontSize: 13 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--muted)', flexShrink: 0, display: 'inline-block' }} />
+                        <span>{l.text}</span>
+                    </div>
+                );
+                if (l.type === 'text') return (
+                    <div key={idx} style={{ padding: '4px 16px 4px', fontSize: 13, color: 'var(--muted)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                        {l.text}
+                    </div>
+                );
+                if (l.type === 'checkbox') return (
+                    <div key={idx}
+                        className={`checklist-item ${l.sub ? 'sub' : ''}`}
+                        style={l.indent > 2 ? { marginLeft: Math.min(l.indent * 8, 64) } : {}}
+                        onClick={() => toggle(l.lineIdx)}
+                    >
+                        <div className={`check-box ${l.checked ? 'checked' : ''}`} />
+                        <span className={`check-text ${l.checked ? 'done' : ''}`}>{l.text}</span>
+                        {l.tag && <span className={`tag-pill tag-${l.tag.toLowerCase()}`}>{l.tag}</span>}
+                    </div>
+                );
+                return null;
+            };
+
             return (
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                         <div>
                             <div style={{ fontSize: 20, fontWeight: 800 }}>Checklist & Planner</div>
-                            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Markdown · tags __ONS · __TODO · __WIP · __BLOCK · __DONE</div>
+                            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Markdown fiel · tags __ONS · __TODO · __WIP · __BLOCK · __DONE</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                             <label className="btn btn-green" style={{ cursor: 'pointer' }}>
@@ -1301,37 +1430,37 @@
                     {editMode ? (
                         <div className="glass" style={{ padding: 16 }}>
                             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, fontFamily: 'var(--mono)' }}>
-                                Sintaxe: ## Aba · - [ ] item __TAG · &nbsp;&nbsp;- [ ] sub-item __TAG
+                                Sintaxe livre: ## Aba · ### Seção · - [ ] item __TAG · &nbsp;&nbsp;- [x] sub · --- separador · texto livre
                             </div>
                             <textarea className="md-editor" value={rawMd} onChange={e => handleEditorChange(e.target.value)} spellCheck={false} />
                         </div>
                     ) : (
                         <div className="glass" style={{ overflow: 'hidden' }}>
+                            {/* Abas */}
                             <div className="md-tabs">
                                 {tabs.map((tab, i) => (
                                     <div key={tab} className={`md-tab ${safeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
                                         {tab}
-                                        <span style={{ marginLeft: 6, fontSize: 10, color: progress(tab) === 100 ? 'var(--accent2)' : 'var(--muted)' }}>
-                                            {progress(tab)}%
+                                        <span style={{ marginLeft: 6, fontSize: 10, color: tabProgress(allLines, tab) === 100 ? 'var(--accent2)' : 'var(--muted)' }}>
+                                            {tabProgress(allLines, tab)}%
                                         </span>
                                     </div>
                                 ))}
                             </div>
+
+                            {/* Progress bar */}
                             <div style={{ padding: '8px 16px 0' }}>
-                                <div className="prog-bar"><div className="prog-fill" style={{ width: `${progress(tabs[safeTab])}%` }} /></div>
+                                <div className="prog-bar"><div className="prog-fill" style={{ width: `${pct}%` }} /></div>
                             </div>
-                            <div style={{ padding: '8px 0 12px' }}>
-                                {(parsed[tabs[safeTab]] || []).map((item, idx) => (
-                                    <div key={idx} className={`checklist-item ${item.sub ? 'sub' : ''}`} onClick={() => toggle(tabs[safeTab], idx)}>
-                                        <div className={`check-box ${item.checked ? 'checked' : ''}`} />
-                                        <span className={`check-text ${item.checked ? 'done' : ''}`}>{item.text}</span>
-                                        {item.tag && <span className={`tag-pill tag-${item.tag.toLowerCase()}`}>{item.tag}</span>}
-                                    </div>
-                                ))}
-                                {(parsed[tabs[safeTab]] || []).length === 0 && (
+
+                            {/* Conteúdo da aba ativa — todas as linhas renderizadas fielmente */}
+                            <div style={{ padding: '4px 0 12px' }}>
+                                {visibleLines.length === 0 ? (
                                     <div style={{ padding: '20px 16px', color: 'var(--muted)', fontSize: 13, fontStyle: 'italic' }}>
-                                        Nenhum item nesta aba. Use o editor MD para adicionar.
+                                        Nenhum conteúdo. Use o editor MD para adicionar.
                                     </div>
+                                ) : (
+                                    visibleLines.map((l, i) => renderLine(l, i))
                                 )}
                             </div>
                         </div>
