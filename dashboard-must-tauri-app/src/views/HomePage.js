@@ -740,7 +740,7 @@ function App() {
                 });
         } else {
             console.warn("Tauri API não detectada. Rodando em modo web.");
-            setTitle('Visão Geral (Modo Web)');
+            setTitle('ONS - Planejamento de Curto Prazo 2026');
         }
     }, []);
 
