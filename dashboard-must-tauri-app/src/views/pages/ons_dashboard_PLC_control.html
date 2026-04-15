@@ -814,31 +814,90 @@
 
 <body>
     <div id="root"></div>
+
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         const STORAGE_KEY = 'hub_ons_unified_v1';
-        const PROJECT_START = new Date(2025, 9, 1);
-        const MONTHS = ['Out/25', 'Nov/25', 'Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26'];
+        const PROJECT_START = new Date(2026, 3, 12); // 12 mar 2026 
+        const MONTHS = ['Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26'];
         const CATEGORIES = { 'Gestão de Projetos': '#1e293b', 'Planejamento Curto Prazo - PLC': '#16a34a', 'Engenharia Elétrica': '#3b82f6', 'Obras e atividades SECO': '#f59e0b' };
         const CAT_COLORS = { 'Gestão de Projetos': '#94a3b8', 'Planejamento Curto Prazo - PLC': '#4ade80', 'Engenharia Elétrica': '#60a5fa', 'Obras e atividades SECO': '#fbbf24' };
 
+
+
+        //Recomendação feita por Copilot Microsoft - 07/04/2026
         const DEFAULT_MD = `## Gestão de Projetos
-- [ ] 1.1: Kickoff do projeto __ONS
-- [ ] 1.2: Definir responsáveis __TODO
-  - [ ] Nomear líder técnico __TODO
-  - [ ] Revisar contratos __ONS
+## 🧭 Gestão Pessoal e Organização (Rotina PLC / ONS)
+- [ ] Atualizar Kanban semanal (mensal + estudos + código) __TODO
+- [ ] Planejar o dia com foco na vB (Pesada / Média) __TODO
+- [ ] Registrar o que foi feito no Mensal (log técnico) __ONS
+- [ ] Revisar prioridades do estágio (PLC) com o que impacta o Mensal __ONS
 
-## Engenharia Elétrica
-- [x] 2.1: Setup do repositório __DONE
-- [ ] 2.2: Integrar API Astro Core __ONS
-  - [ ] Copiar rotas astro.py __WIP
-  - [ ] Criar Blueprint Flask __TODO
-- [ ] 2.3: Autenticação JWT __BLOCK
+---
 
-## Obras e atividades SECO
-- [ ] 3.1: Levantamento de campo __ONS
-- [ ] 3.2: Relatório topográfico __TODO
+## ⚡ Mensal ONS – Casos de Referência (PLC)
+### 🔹 vA / vB / vC – Maio 2026
+- [x] Preparação do caso SEMENTE (vA concluída)
+- [x] Política energética – Pesada (quase final)
+- [x] Política energética – Média (em conferência)
+
+- [x] Conferir **PESADA**:
+  - [x] Ler PWF base e OPF
+  - [x] Verificar balanço energético e swing __TODO
+  - [x] Revisar despachos (Tucuruí, Belo Monte, Teles Pires, Madeira) 
+
+- [x] Conferir **MÉDIA**:
+  - [x] Ler PWF base
+  - [ ] Comparar política energética × despacho atual __TODO
+
+- [x] Finalizar **Complexo Madeira** (Pesada e Média) __TODO
+- [ ] Montar arquivos da **vB** (.dat, .dut, .pwf, .opf, .prm, BNT1) __TODO
+- [ ] Rodar **Build Case no Organon** (vB) __TODO
+- [ ] Conferir Pos-OPF e variação da swing __TODO
+
+---
+
+## 🔌 Engenharia Elétrica – Estudos Técnicos Aplicados
+- [ ] Revisar conceitos de:
+  - [ ] Barra swing e balanço de potência
+  - [ ] Intercâmbio HVDC (bipolos / BtB)
+  - [ ] OPF e perdas no SIN __TODO
+- [ ] Estudar SEP usando casos reais do Mensal (PWF) __TODO
+- [x] Anotar aprendizados técnicos do Mensal (engenharia real) __DONE
+
+---
+
+## 🧠 Faculdade – Engenharia Elétrica
+- [x] Circuitos Digitais I
+- [x] Estudo semanal de Circuitos Elétricos / SEP __TODO
+- [ ] Exercícios de Fluxo de Potência (relacionar com ANAREDE) __TODO
+- [ ] Consolidar relação teoria ↔ prática (ONS) __TODO
+
+---
+
+## 💻 Programação Aplicada (ONS + Estudos)
+### 🔹 Python / Engenharia de Dados
+- [ ] Usar pandas para análise de casos (Pesada × Média) __TODO
+
+### 🔹 Backend / Visualização
+- [ ] Estrutura inicial Flask (app.py) para análise de casos __TODO
+- [ ] Dashboard simples (HTML + Tailwind) para visualizar resultados __TODO
+
+---
+
+## 🌌 Projetos Pessoais Técnicos (baixo prazo)
+- [ ] Dashboard SEP interativo (tensões, fluxos, swing) __TODO
+- [ ] Projeto Astronomia + Engenharia (visual tipo NASA / Artemis) __IDEIA
+- [ ] Blog técnico (.md / Quarto) explicando SEP e Mensal __IDEIA
+
+---
+
+## 🧘 Rotina Pessoal e Foco
+- [ ] Sessões de foco (2 × 50 min/dia) para vB __TODO
+- [ ] Ajustar rotina TDAH com blocos técnicos e pausas __TODO
+- [ ] Manter equilíbrio entre estágio, faculdade e estudos __ONGOING
+
 `;
 
         const DEFAULT_TASKS = [
@@ -924,7 +983,16 @@
             const snack = useSnack();
             const [modal, setModal] = useState(null);
             const fileRef = useRef(null);
-            const todayPct = useMemo(() => Math.min(Math.max(((new Date() - PROJECT_START) / 86400000 / 300) * 100, 0), 100), []);
+            const todayPct = useMemo(() => {
+                const today = new Date();
+                const daysElapsed = (today - PROJECT_START) / (1000 * 60 * 60 * 24);
+                const totalDays = 300; // duração total do projeto em dias
+                return Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100);
+            }, []);
+
+            const todayLabel = useMemo(() => {
+                return new Date().toLocaleDateString('pt-BR');
+            }, []);
 
             const saveModal = () => {
                 if (!modal.title.trim()) return;
@@ -1007,17 +1075,24 @@
                                                         <td style={{ color: 'var(--muted)', fontSize: 11, fontStyle: 'italic' }}>— sem tarefas —</td>
                                                         <td colSpan={10} className="gantt-cell"></td>
                                                     </tr>
-                                                ) : catTasks.map((task, i) => (
-                                                    <tr key={task.id} className="gantt-task-row">
-                                                        <td>{task.title}</td>
-                                                        <td className="gantt-cell" colSpan={10} style={{ position: 'relative' }}>
-                                                            {i === 0 && <div className="today-line" style={{ left: `${todayPct}%` }}><div className="today-badge">HOJE</div></div>}
-                                                            <div className="task-bar" style={{ left: `${(task.startMonth / 10) * 100}%`, width: `${(task.duration / 10) * 100}%`, backgroundColor: task.color }} onClick={() => setModal({ ...task })}>
-                                                                {task.title}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                ) : catTasks.map((task, i) => {
+                                                    const currentMonth = new Date().getMonth();
+                                                    const projectStartMonth = PROJECT_START.getMonth();
+                                                    const monthsSinceStart = (currentMonth - projectStartMonth + 12) % 12;
+                                                    const todayPositionPct = (monthsSinceStart / MONTHS.length) * 100;
+
+                                                    return (
+                                                        <tr key={task.id} className="gantt-task-row">
+                                                            <td>{task.title}</td>
+                                                            <td className="gantt-cell" colSpan={10} style={{ position: 'relative' }}>
+                                                                {i === 0 && <div className="today-line" style={{ left: `${todayPositionPct}%` }}><div className="today-badge">{todayLabel}</div></div>}
+                                                                <div className="task-bar" style={{ left: `${(task.startMonth / MONTHS.length) * 100}%`, width: `${(task.duration / MONTHS.length) * 100}%`, backgroundColor: task.color }} onClick={() => setModal({ ...task })}>
+                                                                    {task.title}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </React.Fragment>
                                         );
                                     })}
@@ -1090,7 +1165,7 @@
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <div>
-                            <div style={{ fontSize: 20, fontWeight: 800 }}>Minhas Tarefas</div>
+                            <div style={{ fontSize: 20, fontWeight: 800 }}>Meus Rascunhos em .md </div>
                             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{tasks.length} projeto(s) · {totalStats.pct}% concluído</div>
                         </div>
                         <button className="btn btn-primary" onClick={() => {
@@ -1562,7 +1637,7 @@
                         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Módulos & Fixes</div>
                         <div className="config-label">
                             <b>Cronograma:</b> Gantt com categorias, Import/Export Excel (.xlsx)<br />
-                            <b>Minhas Tarefas:</b> Cards com checklist MD, anotação geral fixa e persistida<br />
+                            <b>Meus Rascunhos:</b> Cards com checklist MD, anotação geral fixa e persistida<br />
                             <b>Checklist/Planner:</b> Parser MD corrigido (# ## ###, sub-itens 2+ espaços), Export Excel + .md<br />
                             <b>Relatórios:</b> Estatísticas consolidadas de todos os módulos<br />
                             <b>Tema:</b> Dark / Light com CSS variables, toggle na sidebar e aqui
@@ -1590,13 +1665,13 @@
             const reset = () => { Model.reset(); setData({ tasks: DEFAULT_TASKS, markdown: DEFAULT_MD, notes: '', darkMode: true }); };
 
             const navItems = [
-                { id: 'gantt', label: 'Cronograma', icon: 'view_timeline' },
-                { id: 'tasks', label: 'Minhas Tarefas', icon: 'check_box' },
+                { id: 'gantt', label: 'Planner Timeline', icon: 'view_timeline' },
+                { id: 'tasks', label: 'Meus Rascunhos de Ideias', icon: 'check_box' },
                 { id: 'checklist', label: 'Checklist / MD', icon: 'fact_check' },
-                { id: 'reports', label: 'Relatórios', icon: 'insert_chart' },
+                { id: 'reports', label: 'Dashboard', icon: 'insert_chart' },
                 { id: 'config', label: 'Configurações', icon: 'settings' },
             ];
-            const titles = { gantt: 'Cronograma', tasks: 'Minhas Tarefas', checklist: 'Checklist & Planner', reports: 'Painel de Controle', config: 'Configurações' };
+            const titles = { gantt: 'Planner e Cronograma', tasks: 'Meus Rascunhos de Ideias', checklist: 'Checklist & Planner', reports: 'Dashboard', config: 'Configurações' };
 
             return (
                 <SnackbarProvider>
